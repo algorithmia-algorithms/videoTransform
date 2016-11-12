@@ -37,6 +37,7 @@ struct Entry{
     advanced_input: Option<Json>,
     fps: Option<f64>,
 //    quality: Option<bool>,
+
 }
 
 #[derive(Debug, RustcEncodable)]
