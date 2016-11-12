@@ -98,8 +98,8 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
 //    };
     //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
     let quality = true;
-    let scatter_regex = if quality {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.png", input_uuid)};
-    let process_regex = if quality {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.png", input_uuid)};
+    let scatter_regex = if quality {format!("{}-%07d.png", input_uuid)} else {format!("{}-%07d.jpg", input_uuid)};
+    let process_regex = if quality {format!("{}-%07d.png", input_uuid)} else {format!("{}-%07d.jpg", input_uuid)};
 
     //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
     file_mgmt::clean_up(&scattered_working_directory, &processed_working_directory);
