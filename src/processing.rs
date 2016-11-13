@@ -3,7 +3,6 @@ use ffmpeg::FFMpeg;
 use ffmpeg;
 use std::path::*;
 use file_mgmt;
-use alter_handling;
 use rustc_serialize::json::Json;
 use rayon::prelude::*;
 use rayon;
@@ -15,6 +14,8 @@ use structs::scattered::Scattered;
 use structs::gathered::Gathered;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
+use alter_handling;
+use extract_handling;
 use alter_executor::{advanced_alter, default_template_alter};
 use extract_executor::{advanced_extract, default_template_extract};
 use std::io::{self, Write};
@@ -116,17 +117,21 @@ pub fn extract(client: &Algorithmia,
         }
         //no custom json input, so we use defaults.
         None => {
-//            if algorithm.to_ascii_lowercase().as_str().contains("deepfilter") {
-//                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::deep_filter)
-//            } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
-//                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::salnet)
-//            } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
-//                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::colorful_colorization)
-//            } else {
-//                println!("failed to pattern match anything.");
-//                Err(String::from("not implemented.").into())
-//            }
-            unimplemented!()
+            if algorithm.to_ascii_lowercase().as_str().contains("nuditydetection") {
+                default_template_extract(client, data, remote_dir, batch_size, duration, &extract_handling::nudity_detection)
+            } else if algorithm.to_ascii_lowercase().as_str().contains("illustrationtagger") {
+                default_template_extract(client, data, remote_dir, batch_size, duration, &extract_handling::illustration_tagger)
+            } else {
+                println!("failed to pattern match anything.");
+                Err(String::from("not implemented.").into())
+            }
+            //            } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
+            //                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::salnet)
+            //            } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
+            //                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::colorful_colorization)
+            //            } else {
+            //                println!("failed to pattern match anything.");
+            //                Err(String::from("not implemented.").into())
         }
     }
 }

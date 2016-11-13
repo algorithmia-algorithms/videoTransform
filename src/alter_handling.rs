@@ -52,8 +52,8 @@ pub fn salnet(input: &alter::Alter, batch: Vec<usize>) -> Result<Vec<PathBuf>, V
 
     try!(batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client()));
 
-    let mut obj = BTreeMap::new();
     for i in 0..remote_pre_frames.len(){
+        let mut obj = BTreeMap::new();
         obj.insert("image".to_string(), Json::String(remote_pre_frames.index(i).clone()));
         obj.insert("location".to_string(), Json::String(remote_post_frames.index(i).clone()));
         let json = obj.to_json();
@@ -76,8 +76,8 @@ pub fn colorful_colorization(input: &alter::Alter, batch: Vec<usize>) -> Result<
 
     try!(batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client()));
 
-    let mut obj = BTreeMap::new();
     for i in 0..remote_pre_frames.len() {
+        let mut obj = BTreeMap::new();
         obj.insert("image".to_string(), Json::String(remote_pre_frames.index(i).clone()));
         obj.insert("location".to_string(), Json::String(remote_post_frames.index(i).clone()));
         let json = obj.to_json();
