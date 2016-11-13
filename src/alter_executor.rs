@@ -79,7 +79,7 @@ pub fn advanced_alter(client: &Algorithmia,
     let frame_batches = if search.option() == "batch" {utilities::frame_batches(batch_size, data.num_frames())}
         else {utilities::frame_batches(1, data.num_frames())};
 
-    let input = Arc::new(alter::Alter::new(client.clone(),
+    let formatted_data = Arc::new(alter::Alter::new(client.clone(),
                                            data.regex().to_owned(),
                                            output_regex.to_owned(),
                                            local_out_dir.to_owned(),
@@ -93,7 +93,7 @@ pub fn advanced_alter(client: &Algorithmia,
             return Err(err.to_string().into())
         }
         if search.option() == "batch" {
-            match alter_handling::advanced_batch(&input, batch.to_owned(), algorithm.to_string(), &search) {
+            match alter_handling::advanced_batch(&formatted_data, batch.to_owned(), algorithm.to_string(), &search) {
                 Ok(data) => Ok(data),
                 Err(err) => {
                     let mut terminate = lock.lock().unwrap();
@@ -103,7 +103,7 @@ pub fn advanced_alter(client: &Algorithmia,
                 }
             }
         } else {
-            match alter_handling::advanced_single(&input, batch.to_owned(), algorithm.to_string(), &search) {
+            match alter_handling::advanced_single(&formatted_data, batch.to_owned(), algorithm.to_string(), &search) {
                 Ok(data) => Ok(data),
                 Err(err) => {
                     let mut terminate = lock.lock().unwrap();

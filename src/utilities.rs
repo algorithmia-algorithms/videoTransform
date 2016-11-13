@@ -1,7 +1,11 @@
 use rustc_serialize::json::*;
 use algorithmia::{Algorithmia};
 use algorithmia::data::file::*;
+use algorithmia::error::Error::ApiError;
+use algorithmia::algo::*;
 use regex::Regex;
+use file_mgmt::*;
+use std::path::*;
 use video_error::VideoError;
 use std::collections::BTreeMap;
 use time::{Tm, strftime};
@@ -10,6 +14,7 @@ static BATCH_INPUT: &'static str = "$BATCH_INPUT";
 static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
 static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
 static SINGLE_OUTPUT: &'static str = "$SINGLE_OUTPUT";
+static MAX_ATTEMPTS: usize = 3usize;
 
 #[derive(Debug, Clone)]
 pub struct SearchResult{
@@ -112,7 +117,7 @@ pub fn format_search(json: &Json) -> Result<SearchResult, VideoError> {
     }
 }
 
-//TODO: implement this
+//takes an array of json blobs & a frame stamp, returns a json object with an array of json objects containing the frame's timestamp & data.
 pub fn combine_extracted_data(data: &Vec<Json>, frame_stamp: f64) -> Result<Json, VideoError> {
     let mut finale = BTreeMap::new();
     let mut json: Vec<Json> = Vec::new();
@@ -141,4 +146,77 @@ pub fn early_exit(client: &Algorithmia, output_path: &str) -> Result<(), VideoEr
 pub fn frame_batches(batch_size: usize, number_of_frames: usize) -> Vec<Vec<usize>> {
     let array: Vec<usize> = (1..number_of_frames).collect::<Vec<usize>>();
     array.chunks(batch_size).map(|chunk| { chunk.iter().cloned().collect() }).collect::<Vec<Vec<usize>>>()
+}
+
+pub fn batch_file_path(batch: &Vec<usize>, regex: &str, directory: &str) -> Result<Vec<String>, VideoError>
+{
+    let regexed = try!(batch.iter().map(|iter| {
+        from_regex(regex, iter.clone())
+    }).collect::<Result<Vec<String>, VideoError>>());
+    Ok(regexed.iter().map(|filename| {
+        format!("{}/{}", directory, filename)
+    }).collect::<Vec<String>>())
+}
+
+//retry 3 times, if it fails 3 times we exit hard.
+pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<(), VideoError>
+{
+    for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
+        let mut attempts = 0;
+        loop {
+            let result = upload_file(&remote_file, &local_file, client);
+            if result.is_ok(){
+                break;
+            }
+                else if attempts > MAX_ATTEMPTS {
+                    let err = result.err().unwrap();
+                    return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+                }
+            attempts += 1;
+        }
+    }
+    Ok(())
+}
+
+pub fn batch_get_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
+{
+    let mut output: Vec<PathBuf> = Vec::new();
+    let mut attempts = 0;
+    for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
+        loop {
+            let result = get_file(&remote_file, &local_file, client);
+            if result.is_ok() {
+                break;
+            }
+                else if attempts > MAX_ATTEMPTS {
+                    let err = result.err().unwrap();
+                    return Err(format!("failed {} times to download file {} : \n{}", attempts, remote_file, err).into())
+                }
+            attempts += 1;
+        }
+    }
+    Ok(output)
+}
+
+
+pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Json) -> Result<AlgoResponse, VideoError> {
+    let mut attempts = 0;
+    let mut final_result;
+    loop {
+        match client.algo(algorithm).timeout(500).pipe(input.clone()) {
+            Ok(result) => {
+                final_result = result;
+                break;
+            },
+            Err(ApiError(ref err)) if attempts < MAX_ATTEMPTS => {
+                println!("failed.");
+                attempts += 1;
+            },
+            Err(err) => {
+                println!("failed hard.");
+                return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
+            }
+        }
+    }
+    Ok(final_result)
 }
