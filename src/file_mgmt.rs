@@ -80,8 +80,12 @@ pub fn get_files_and_sort(frames_path: &Path) -> Vec<PathBuf> {
     files
 }
 
-pub fn json_to_file(json: &Json, file_path: &Path) -> Result<PathBuf, VideoError> {
-    unimplemented!()
+pub fn json_to_file(json: &Json, json_path: &Path) -> Result<PathBuf, VideoError> {
+    let mut local_file: File = try!(File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)}));
+    let mut writer = std::io::BufWriter::new(local_file);
+    try!(writer.write_all(json.to_string().as_bytes()));
+    Ok(PathBuf::from(json_path))
+
 }
 //used with Process to create file names from a regex filename containing a %07d & iteration number.
 pub fn from_regex(regex: &str, iter: usize) -> Result<String, VideoError> {

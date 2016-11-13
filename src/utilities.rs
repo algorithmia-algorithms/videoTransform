@@ -4,6 +4,7 @@ use algorithmia::data::file::*;
 use regex::Regex;
 use video_error::VideoError;
 use std::collections::BTreeMap;
+use time::{Tm, strftime};
 use either::{Either, Left, Right};
 static BATCH_INPUT: &'static str = "$BATCH_INPUT";
 static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
@@ -113,7 +114,18 @@ pub fn format_search(json: &Json) -> Result<SearchResult, VideoError> {
 
 //TODO: implement this
 pub fn combine_extracted_data(data: &Vec<Json>, frame_stamp: f64) -> Result<Json, VideoError> {
-    unimplemented!()
+    let mut finale = BTreeMap::new();
+    let mut json: Vec<Json> = Vec::new();
+    for iter in 0..data.len() {
+        let mut obj = BTreeMap::new();
+        let ref value: Json = data[iter];
+        let time_s: f64 = iter as f64 * frame_stamp;
+        obj.insert("timestamp".to_string(), Json::F64(time_s));
+        obj.insert("data".to_string(), value.clone());
+        json.push(obj.to_json());
+    }
+    finale.insert("frame_data".to_string(), Json::Array(json));
+    Ok(finale.to_json())
 }
 
 //exits early if the or if the output path is invalid.
