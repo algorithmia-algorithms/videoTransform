@@ -1,15 +1,13 @@
-use algorithmia::{client, Algorithmia};
-use algorithmia::algo::*;
-use algorithmia::data::*;
+use algorithmia::{Algorithmia};
 use std;
 use std::path::*;
-use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata, Metadata};
-use std::io::{Read, Write, Seek};
+use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata};
+use std::io::{Read, Write};
 use hyper::Client;
 use hyper::header::Connection;
 use regex::Regex;
 use video_error::VideoError;
-use rustc_serialize::json::{Json, ToJson};
+use rustc_serialize::json::{Json};
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
@@ -44,11 +42,9 @@ fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmi
     Ok(PathBuf::from(local_path))
 }
 
-pub fn create_directory(directory: &Path) -> Result<(), VideoError> {
-    match create_dir_all(directory) {
-        Ok(()) => Ok(()),
-        Err(err) => Err(err.into())
-    }
+pub fn create_directory(directory: &Path) -> () {
+    create_dir_all(directory);
+    ()
 }
 
 pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {

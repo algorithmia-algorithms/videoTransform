@@ -1,4 +1,6 @@
 use rustc_serialize::json::*;
+use algorithmia::{Algorithmia};
+use algorithmia::data::file::*;
 use regex::Regex;
 use video_error::VideoError;
 use std::collections::BTreeMap;
@@ -112,4 +114,19 @@ pub fn format_search(json: &Json) -> Result<SearchResult, VideoError> {
 //TODO: implement this
 pub fn combine_extracted_data(data: &Vec<Json>, frame_stamp: f64) -> Result<Json, VideoError> {
     unimplemented!()
+}
+
+//exits early if the or if the output path is invalid.
+pub fn early_exit(client: &Algorithmia, output_path: &str) -> Result<(), VideoError> {
+    //try to upload a 0 size file to the output path, then delete it. if both succeed then the path is valid.
+    let r: Result<_, VideoError> = client.file(output_path).put("").map_err(|err| format!("early exit: \n output path {} invalid, or invalid permissions, unable to upload.\n{}", output_path, err).into());
+    let j: Result<_, VideoError> = client.file(output_path).delete().map_err(|err| format!("early exit: \n output path {} invalid, or invalid permissions, unable to delete.\n{}", output_path, err).into());
+    try!(r);
+    try!(j);
+    Ok(())
+}
+
+pub fn frame_batches(batch_size: usize, number_of_frames: usize) -> Vec<Vec<usize>> {
+    let array: Vec<usize> = (1..number_of_frames).collect::<Vec<usize>>();
+    array.chunks(batch_size).map(|chunk| { chunk.iter().cloned().collect() }).collect::<Vec<Vec<usize>>>()
 }

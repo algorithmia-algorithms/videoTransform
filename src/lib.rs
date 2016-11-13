@@ -7,9 +7,8 @@ extern crate uuid;
 extern crate either;
 #[macro_use] extern crate wrapped_enum;
 #[macro_use] extern crate lazy_static;
-use algorithmia::{client, Algorithmia, NoAuth, Url};
+use algorithmia::{Algorithmia, NoAuth};
 use algorithmia::algo::*;
-use algorithmia::data::*;
 mod video_error;
 mod file_mgmt;
 mod ffmpeg;
@@ -17,6 +16,8 @@ mod alter_handling;
 mod processing;
 mod structs;
 mod utilities;
+mod alter_executor;
+mod extract_executor;
 use video_error::VideoError;
 use ffmpeg::FFMpeg;
 use std::path::*;
@@ -100,12 +101,13 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let scatter_regex = if quality {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.png", input_uuid)};
     let process_regex = if quality {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.png", input_uuid)};
 
+    try!(utilities::early_exit(&client, &entry.output_file));
     //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
     file_mgmt::clean_up(&scattered_working_directory, &processed_working_directory);
     let ffmpeg: FFMpeg = try!(ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client));
     let video = try!(file_mgmt::get_file(&entry.input_file, &local_input_file, &client));
     let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps, quality));
-    let processed_data = try!(processing::process(&client, &entry.algorithm, entry.advanced_input.as_ref(), &scatter_data, data_api_work_directory, &processed_working_directory, &process_regex, threads, batch_size));
+    let processed_data = try!(processing::alter(&client, &entry.algorithm, entry.advanced_input.as_ref(), &scatter_data, data_api_work_directory, &processed_working_directory, &process_regex, threads, batch_size));
     let gathered: Gathered = try!(processing::gather(&ffmpeg, &local_output_file, processed_data, scatter_data.original_video()));
     let uploaded = try!(file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &client));
     let result = Exit{output_file: uploaded};
