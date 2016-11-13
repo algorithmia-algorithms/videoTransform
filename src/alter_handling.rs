@@ -90,7 +90,7 @@ fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Json) -> Result<
 ///Everything needs to be owned when passed into these processing templates as rust multi-threading can't accept references.
 pub fn deep_filter(input: &alter::Alter, batch: Vec<usize>) -> Result<Vec<PathBuf>, VideoError>
 {
-    let algorithm = "algo://deeplearning/DeepFilter/0.3.3";
+    let algorithm = "algo://deeplearning/DeepFilter/0.3.2";
     let local_pre_frames: Vec<PathBuf> = try!(batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap()))
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = try!(batch_file_path(&batch, input.input_regex(), input.remote_working()));
