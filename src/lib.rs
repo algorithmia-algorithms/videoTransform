@@ -84,7 +84,7 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let data_api_work_directory = "data://.session";
     let client = Algorithmia::client(NoAuth);
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
-    let batch_size = 12;
+    let batch_size = 5;
     let threads = 8;
     let ffmpeg_working_directory = PathBuf::from("/tmp/ffmpeg");
     let scattered_working_directory = PathBuf::from("/tmp/scattered_frames");
