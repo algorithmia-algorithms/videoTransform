@@ -87,7 +87,26 @@ pub fn prepare_json(obj: &SearchResult, input: Either<&Vec<String>, &str>, outpu
     try!(replace_json(&mut mutable, obj.out_path(), output));
     Ok(Json::Object(mutable.clone()))
 }
-pub fn format_search(json: &Json) -> Result<SearchResult, VideoError> {
+
+//only difference between extract & alter format search, extract only cares about input keywords, it doesn't have output keywords.
+pub fn extract_format_search(json: &Json) -> Result<SearchResult, VideoError> {
+    let mut mutable_json: Json = json.clone();
+    let mut obj = mutable_json.as_object_mut().unwrap();
+    let mut batch_in_path = Vec::new();
+    let mut single_in_path = Vec::new();
+    let batch_in = search_json(&mut obj, &mut batch_in_path, BATCH_INPUT);
+    let single_in = search_json(&mut obj, &mut single_in_path, SINGLE_INPUT);
+    if batch_in {
+        println!("json parsed as batch input.");
+        Ok(SearchResult::new("batch".to_string(), batch_in_path, Vec::new(), json.clone()))
+    } else if single_in {
+        println!("json parsed as single input.");
+        Ok(SearchResult::new("single".to_string(), single_in_path, Vec::new(), json.clone()))
+    } else {
+        Err(String::from("json parsing error:\nadvanced_input did not contain any keywords!").into())
+    }
+}
+pub fn alter_format_search(json: &Json) -> Result<SearchResult, VideoError> {
     let mut mutable_json: Json = json.clone();
     let mut obj = mutable_json.as_object_mut().unwrap();
     let mut batch_in_path = Vec::new();

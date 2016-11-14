@@ -18,7 +18,7 @@ use std::ops::*;
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
 static FPSMAX: f64 = 60f64;
-use utilities;
+use utilities::*;
 
 pub fn default_template_extract(client: &Algorithmia,
                             data: &Scattered,
@@ -29,7 +29,7 @@ pub fn default_template_extract(client: &Algorithmia,
 {
     //generate batches of frames by number, based on the batch size.
     let frame_stamp: f64 = duration / data.num_frames() as f64;
-    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(utilities::frame_batches(batch_size, data.num_frames()));
+    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(frame_batches(batch_size, data.num_frames()));
     let mut result: Vec<Result<Vec<Json>, VideoError>> = Vec::new();
     //mutex lock that allows us to end early.
     let formatted_data = Arc::new(extract::Extract::new(client.clone(),
@@ -56,7 +56,7 @@ pub fn default_template_extract(client: &Algorithmia,
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())
     };
-    let processed: Json = try!(utilities::combine_extracted_data(&processed_frames, frame_stamp));
+    let processed: Json = try!(combine_extracted_data(&processed_frames, frame_stamp));
 
     Ok(processed)
 }
@@ -70,12 +70,12 @@ pub fn advanced_extract(client: &Algorithmia,
                     input: &Json) -> Result<Json, VideoError>
 {
     let frame_stamp: f64 = duration / data.num_frames() as f64;
-    let search: Arc<utilities::SearchResult> = Arc::new(try!(utilities::format_search(input)));
+    let search: Arc<SearchResult> = Arc::new(try!(extract_format_search(input)));
     let mut result: Vec<Result<Vec<Json>, VideoError>> = Vec::new();
     //mutex lock that allows us to end early.
     let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-    let frame_batches = if search.option() == "batch" {utilities::frame_batches(batch_size, data.num_frames())}
-        else {utilities::frame_batches(1, data.num_frames())};
+    let frame_batches = if search.option() == "batch" {frame_batches(batch_size, data.num_frames())}
+        else {frame_batches(1, data.num_frames())};
 
     let formatted_data = Arc::new(extract::Extract::new(client.clone(),
                                            data.regex().to_owned(),
@@ -115,6 +115,6 @@ pub fn advanced_extract(client: &Algorithmia,
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())
     };
-    let processed:Json = try!(utilities::combine_extracted_data(&processed_frames, frame_stamp));
+    let processed:Json = try!(combine_extracted_data(&processed_frames, frame_stamp));
     Ok(processed)
 }

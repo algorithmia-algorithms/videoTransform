@@ -72,7 +72,7 @@ pub fn advanced_alter(client: &Algorithmia,
                       batch_size: usize,
                       input: &Json) -> Result<Altered, VideoError>
 {
-    let search: Arc<utilities::SearchResult> = Arc::new(try!(utilities::format_search(input)));
+    let search: Arc<utilities::SearchResult> = Arc::new(try!(utilities::alter_format_search(input)));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     //mutex lock that allows us to end early.
     let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));

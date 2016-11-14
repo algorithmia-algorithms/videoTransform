@@ -39,7 +39,7 @@ pub fn illustration_tagger(input: &extract::Extract, batch: Vec<usize>) -> Resul
 
     try!(batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client()));
     let mut output: Vec<Json> = Vec::new();
-    for i in 0..remote_pre_frames.len() {
+    for _ in 0..remote_pre_frames.len() {
         let mut obj = BTreeMap::new();
         obj.insert("image".to_string(), Json::Array(remote_pre_frames.iter()
             .map(|frame| { Json::String(frame.clone()) }).collect::<Vec<Json>>()));
