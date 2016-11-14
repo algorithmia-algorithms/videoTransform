@@ -30,8 +30,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
                video_file: &Path,
                frame_dir: &Path,
                regex: &str,
-               fps: Option<f64>,
-               quality: bool) -> Result<Scattered, VideoError> {
+               fps: Option<f64>) -> Result<Scattered, VideoError> {
     file_mgmt::create_directory(frame_dir);
     println!("scattering video into frames and audio");
     let origin_fps = try!(ffmpeg.get_video_fps(video_file));
@@ -39,17 +38,17 @@ pub fn scatter(ffmpeg: &FFMpeg,
         Some(fps) => {fps},
         None => {
             if origin_fps <= MAX_FPS { origin_fps }
-    else { MAX_FPS }
+                else { MAX_FPS }
         }};
     let duration:f64 = try!(ffmpeg.get_video_duration(video_file));
     let num_frames: u64 = (duration*output_fps).ceil() as u64;
     if num_frames <= MAX_FRAMES {
-        let result = try!(ffmpeg.split_video(video_file, frame_dir, &regex, output_fps, quality));
+        let result = try!(ffmpeg.split_video(video_file, frame_dir, &regex, output_fps));
         Ok(Scattered::new(PathBuf::from(frame_dir), result.len(), PathBuf::from(video_file), output_fps, regex.to_string()))
     }
-    else {
-        Err(format!("early exit:\nInput videos total number of frames greater than {}, please reduce fps or reduce the total size of the video file.", MAX_FRAMES).into())
-    }
+        else {
+            Err(format!("early exit:\nInput videos total number of frames greater than {}, please reduce fps or reduce the total size of the video file.", MAX_FRAMES).into())
+        }
 }
 
 //combines video frames in directory frames_dir with audio_file to create a video file.
@@ -125,13 +124,6 @@ pub fn extract(client: &Algorithmia,
                 println!("failed to pattern match anything.");
                 Err(String::from("not implemented.").into())
             }
-            //            } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
-            //                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::salnet)
-            //            } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
-            //                default_template_extract(client, data, remote_dir, batch_size, duration, &alter_handling::colorful_colorization)
-            //            } else {
-            //                println!("failed to pattern match anything.");
-            //                Err(String::from("not implemented.").into())
         }
     }
 }

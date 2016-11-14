@@ -107,7 +107,7 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     file_mgmt::clean_up(&scattered_working_directory, &processed_working_directory);
     let ffmpeg: FFMpeg = try!(ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client));
     let video = try!(file_mgmt::get_file(&entry.input_file, &local_input_file, &client));
-    let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps, quality));
+    let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps));
     let processed_data = try!(processing::alter(&client, &entry.algorithm, entry.advanced_input.as_ref(), &scatter_data, data_api_work_directory, &processed_working_directory, &process_regex, threads, batch_size));
     let gathered: Gathered = try!(processing::gather(&ffmpeg, &local_output_file, processed_data, scatter_data.original_video()));
     let uploaded = try!(file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &client));

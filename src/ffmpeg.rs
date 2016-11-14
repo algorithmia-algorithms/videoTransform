@@ -21,7 +21,7 @@ pub fn new(ffmpeg_remote: &str, ffmpeg_directory: &Path, client: &Algorithmia) -
     println!("unzipped file.");
     Ok(
         FFMpeg{ffprobe_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffprobe")),
-        ffmpeg_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"))}
+            ffmpeg_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"))}
     )
 }
 
@@ -46,9 +46,9 @@ impl FFMpeg {
             result.pop();
             Ok(try!(result.parse::<f64>()))
         }
-        else {
-            Err(format!("ffprobe error, could not get duration: \n {}", String::from_utf8_lossy(&response.stderr)).into())
-        }
+            else {
+                Err(format!("ffprobe error, could not get duration: \n {}", String::from_utf8_lossy(&response.stderr)).into())
+            }
     }
     //determines a basic jpeg compression ratio between 2-19 based on how big the file is.
     pub fn get_compression_factor(&self, video_file: &Path) -> Result<usize, VideoError> {
@@ -58,9 +58,9 @@ impl FFMpeg {
         if logged >= 31usize {
             Ok(31usize)
         }
-        else {
-            Ok(logged )
-        }
+            else {
+                Ok(logged )
+            }
     }
     //gets the frames per second of the input video, using nb_frames and duration from ffprobe
     pub fn get_video_fps(&self, video_file: &Path) -> Result<f64, VideoError> {
@@ -94,15 +94,15 @@ impl FFMpeg {
     //re-attaches the audio track to the concatenated video file.
     pub fn attach_streams(&self, input_video: &Path, output_video: &Path, original_vvideo: &Path) -> Result<PathBuf, VideoError> {
         let response = try!(Command::new(self.ffmpeg())
-        .args(&["-loglevel",
-            "error",
-            "-i", input_video.to_str().unwrap(),
-            "-i", original_vvideo.to_str().unwrap(),
-            "-c", "copy",
-            "-map", "1",
-            "-map", "-1:v",
-            "-map", "0:v",
-            output_video.to_str().unwrap(), "-y"]).output());
+            .args(&["-loglevel",
+                "error",
+                "-i", input_video.to_str().unwrap(),
+                "-i", original_vvideo.to_str().unwrap(),
+                "-c", "copy",
+                "-map", "1",
+                "-map", "-1:v",
+                "-map", "0:v",
+                output_video.to_str().unwrap(), "-y"]).output());
         if response.stderr.is_empty() {
             Ok(PathBuf::from(output_video))
         } else {
@@ -111,16 +111,16 @@ impl FFMpeg {
     }
 
     //concatenates frames into a video using ffmpeg.
-//    pub fn cat_video(&self, output_file: &str, cat_file: &str, fps: f64) -> Result<String, VideoError> {
-//
-//        let response = try!(Command::new(self.ffmpeg())
-//            .args(&["-loglevel", "error", "-r", &fps.to_string(), "-f", "concat", "-i", cat_file, output_file, "-y"]).output());
-//        if response.stderr.is_empty() {
-//            Ok(output_file.to_string())
-//        } else {
-//            Err(format!("ffmpeg error, could not concat frames: \n {}", try!(String::from_utf8(response.stderr))).into())
-//        }
-//    }
+    //    pub fn cat_video(&self, output_file: &str, cat_file: &str, fps: f64) -> Result<String, VideoError> {
+    //
+    //        let response = try!(Command::new(self.ffmpeg())
+    //            .args(&["-loglevel", "error", "-r", &fps.to_string(), "-f", "concat", "-i", cat_file, output_file, "-y"]).output());
+    //        if response.stderr.is_empty() {
+    //            Ok(output_file.to_string())
+    //        } else {
+    //            Err(format!("ffmpeg error, could not concat frames: \n {}", try!(String::from_utf8(response.stderr))).into())
+    //        }
+    //    }
     pub fn cat_video(&self, output_file: &Path, directory: &Path, regex: &str, fps: f64) -> Result<PathBuf, VideoError> {
         let complete_regex = format!("{}/{}", directory.display(), regex);
         let response = try!(Command::new(self.ffmpeg())
@@ -136,25 +136,13 @@ impl FFMpeg {
         }
     }
     //splits a video into frames at a given fps using ffmpeg, if no quality we use jpeg image compression based on the input video filesize.
-    pub fn split_video(&self, video_path: &Path, frames_path: &Path, regex: &str, fps: f64, quality: bool) -> Result<Vec<PathBuf>, VideoError> {
-        let response = if quality {
-                try!(Command::new(self.ffmpeg())
-                .args(&["-loglevel", "error",
-                    "-i", video_path.to_str().unwrap(),
-                    "-vf",
-                    &format!("fps={}", fps),
-                    regex, "-y"]).current_dir(frames_path).output())
-            }
-        else {
-            let factor: usize = try!(self.get_compression_factor(video_path));
-            try!(Command::new(self.ffmpeg())
-                .args(&["-loglevel", "error",
-                    "-i", video_path.to_str().unwrap(),
-                    "-vf",
-                    "-q:v", &format!("{}", factor),
-                    &format!("fps={}", fps),
-                    regex, "-y"]).current_dir(frames_path).output())
-        };
+    pub fn split_video(&self, video_path: &Path, frames_path: &Path, regex: &str, fps: f64) -> Result<Vec<PathBuf>, VideoError> {
+        let response = try!(Command::new(self.ffmpeg())
+            .args(&["-loglevel", "error",
+                "-i", video_path.to_str().unwrap(),
+                "-vf",
+                &format!("fps={}", fps),
+                regex, "-y"]).current_dir(frames_path).output());
 
         if response.stderr.is_empty() {
             let frames: Vec<PathBuf> = file_mgmt::get_files_and_sort(frames_path);
