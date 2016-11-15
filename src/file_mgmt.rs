@@ -8,6 +8,7 @@ use hyper::header::Connection;
 use regex::Regex;
 use video_error::VideoError;
 use rustc_serialize::json::{Json};
+static MAX_ATTEMPTS: usize = 3usize;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
@@ -16,12 +17,25 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
     create_directory(local_dir);
     let tmp_url = url.clone();
     let prefix: &str = tmp_url.split("://").next().unwrap().clone();
-    if prefix == "http" || prefix == "https" {
-        get_file_from_html(url.to_string(), local_path)
+    let mut attempts = 0;
+    let mut output;
+    loop {
+        let result = if prefix == "http" || prefix == "https" {
+            get_file_from_html(url.to_string(), local_path)
+        } else {
+                get_file_from_algorithmia(url.to_string(), local_path, client)
+            };
+        if result.is_ok() {
+            output = result.unwrap();
+            break;
+        }
+            else if attempts > MAX_ATTEMPTS {
+                let err = result.err().unwrap();
+                return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
+            }
+        attempts += 1;
     }
-    else {
-        get_file_from_algorithmia(url.to_string(), local_path, client)
-    }
+    Ok(output)
 }
 
 fn get_file_from_html(url: String, local_path: &Path) -> Result<PathBuf, VideoError> {
@@ -42,6 +56,30 @@ fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmi
     Ok(PathBuf::from(local_path))
 }
 
+pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
+    match local_file.exists() {
+        true => {
+            let mut attempts = 0;
+            let mut output;
+            loop {
+                let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
+                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}", url_dir, err)});
+                if response.is_ok() {
+                    output = response.unwrap();
+                    break;
+                }
+                    else if attempts > MAX_ATTEMPTS {
+                        let err = response.err().unwrap();
+                        return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+                    }
+                attempts += 1;
+            }
+            Ok(url_dir.to_string())
+        }
+        false => {Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())}
+    }
+}
+
 pub fn create_directory(directory: &Path) -> () {
     create_dir_all(directory);
     ()
@@ -60,17 +98,6 @@ pub fn clean_up(original_dir: &Path, process_dir: &Path) -> Result<(), VideoErro
     }
 }
 
-pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
-
-    match local_file.exists() {
-        true => {
-            let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
-            let response =try!(client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}", url_dir, err)}));
-            Ok(response.result)
-        }
-        false => {Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())}
-    }
-}
 
 pub fn get_files_and_sort(frames_path: &Path) -> Vec<PathBuf> {
     let paths: ReadDir = read_dir(frames_path).unwrap();
@@ -87,6 +114,7 @@ pub fn json_to_file(json: &Json, json_path: &Path) -> Result<PathBuf, VideoError
     Ok(PathBuf::from(json_path))
 
 }
+
 //used with Process to create file names from a regex filename containing a %07d & iteration number.
 pub fn from_regex(regex: &str, iter: usize) -> Result<String, VideoError> {
     lazy_static! {

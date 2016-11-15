@@ -38,8 +38,6 @@ struct Entry{
     algorithm: String,
     advanced_input: Option<Json>,
     fps: Option<f64>,
-//    quality: Option<bool>,
-
 }
 
 #[derive(Debug, RustcEncodable)]
@@ -67,7 +65,6 @@ impl EntryPoint for Algo {
                     output_file: str_field!(&obj, "output_file"),
                     algorithm: str_field!(&obj, "algorithm"),
                     advanced_input: obj.get("advanced_input").cloned(),
-//                    quality: obj.get("quality").and_then(|ref quality| {quality.as_boolean()}),
                     fps: obj.get("fps").and_then(|ref fps| {fps.as_f64()})
                 };
                 match helper(entry) {
@@ -83,6 +80,8 @@ impl EntryPoint for Algo {
 fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let data_api_work_directory = "data://.session";
     let client = Algorithmia::client(NoAuth);
+//    let data_api_work_directory = "data://.my/ProcessVideo";
+//    let client = Algorithmia::client("simSH1MsxDwbvQ92Lkf7hn61Y5i1");
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 5;
     let threads = 8;
@@ -94,10 +93,6 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let local_input_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), entry.input_file.split("/").last().unwrap().clone()));
     let input_uuid = Uuid::new_v4();
     let output_uuid = Uuid::new_v4();
-//    let quality = match entry.quality {
-//        Some(val) => val,
-//        None => false
-//    };
     //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
     let quality = true;
     let scatter_regex = format!("{}-%07d.png", input_uuid);
@@ -157,10 +152,10 @@ fn advanced_test() {
     let mut advanced = BTreeMap::new();
     advanced.insert("images".to_string(), Json::String("$BATCH_INPUT".to_string()));
     advanced.insert("savePaths".to_string(), Json::String("$BATCH_OUTPUT".to_string()));
-    advanced.insert("filterName".to_string(), Json::String("gan_vogh".to_string()));
-    obj.insert("input_file".to_string(), Json::String("data://zeryx/Video/shorter_lounge.mp4".to_string()));
-    obj.insert("output_file".to_string(), Json::String("data://media/videos/shorter_lounge_filtered.mp4".to_string()));
-    obj.insert("image_algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
+    advanced.insert("filterName".to_string(), Json::String("far_away".to_string()));
+    obj.insert("input_file".to_string(), Json::String("data://quality/Videos/inception_trailer.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_filtered.mp4".to_string()));
+    obj.insert("algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
     obj.insert("fps".to_string(), Json::F64(15f64));
     obj.insert("advanced_input".to_string(), Json::Object(advanced));
     let data = obj.to_json();

@@ -181,18 +181,7 @@ pub fn batch_file_path(batch: &Vec<usize>, regex: &str, directory: &str) -> Resu
 pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<(), VideoError>
 {
     for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
-        let mut attempts = 0;
-        loop {
-            let result = upload_file(&remote_file, &local_file, client);
-            if result.is_ok(){
-                break;
-            }
-                else if attempts > MAX_ATTEMPTS {
-                    let err = result.err().unwrap();
-                    return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
-                }
-            attempts += 1;
-        }
+        try!(upload_file(&remote_file, &local_file, client));
     }
     Ok(())
 }
@@ -200,19 +189,8 @@ pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
 pub fn batch_get_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
 {
     let mut output: Vec<PathBuf> = Vec::new();
-    let mut attempts = 0;
     for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
-        loop {
-            let result = get_file(&remote_file, &local_file, client);
-            if result.is_ok() {
-                break;
-            }
-                else if attempts > MAX_ATTEMPTS {
-                    let err = result.err().unwrap();
-                    return Err(format!("failed {} times to download file {} : \n{}", attempts, remote_file, err).into())
-                }
-            attempts += 1;
-        }
+        output.push(try!(get_file(&remote_file, &local_file, client)));
     }
     Ok(output)
 }
