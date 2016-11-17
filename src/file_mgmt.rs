@@ -8,6 +8,8 @@ use hyper::header::Connection;
 use regex::Regex;
 use video_error::VideoError;
 use rustc_serialize::json::{Json};
+use std::time::Duration;
+use std::thread;
 static MAX_ATTEMPTS: usize = 3usize;
 
 //gets any remote file, http/https or data connector
@@ -33,7 +35,10 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
                 let err = result.err().unwrap();
                 return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
             }
-        attempts += 1;
+        else {
+            thread::sleep(Duration::from_millis((1000*attempts) as u64));
+            attempts += 1;
+        }
     }
     Ok(output)
 }
@@ -72,7 +77,10 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
                         let err = response.err().unwrap();
                         return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
                     }
-                attempts += 1;
+                else {
+                    thread::sleep(Duration::from_millis((1000*attempts) as u64));
+                    attempts += 1;
+                }
             }
             Ok(url_dir.to_string())
         }

@@ -37,9 +37,14 @@ pub fn scatter(ffmpeg: &FFMpeg,
     let output_fps = match fps {
         Some(fps) => {fps},
         None => {
-            if origin_fps <= MAX_FPS { origin_fps }
-                else { MAX_FPS }
-        }};
+            if origin_fps <= MAX_FPS {
+                origin_fps
+            }
+                else {
+                    MAX_FPS
+                }
+        }
+    };
     let duration:f64 = try!(ffmpeg.get_video_duration(video_file));
     let num_frames: u64 = (duration*output_fps).ceil() as u64;
     if num_frames <= MAX_FRAMES {
@@ -63,7 +68,7 @@ pub fn gather(ffmpeg: &FFMpeg,
     Ok(Gathered::new(video_with_streams, data.fps()))
 }
 
-//processes the images generated from the scatter op in an asynchronous algo call loop.
+// alter branch, used by VideoTransform
 pub fn alter(client: &Algorithmia,
              algorithm: &str,
              algo_input: Option<&Json>,
@@ -96,7 +101,7 @@ pub fn alter(client: &Algorithmia,
         }
     }
 }
-
+//extract branch, used by VideoMetadataExtraction
 pub fn extract(client: &Algorithmia,
                algorithm: &str,
                algo_input: Option<&Json>,

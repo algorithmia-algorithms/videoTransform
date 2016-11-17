@@ -10,6 +10,9 @@ use video_error::VideoError;
 use std::collections::BTreeMap;
 use time::{Tm, strftime};
 use either::{Either, Left, Right};
+use std::time::Duration;
+use std::thread;
+
 static BATCH_INPUT: &'static str = "$BATCH_INPUT";
 static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
 static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
@@ -207,6 +210,7 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Json) -> Res
             },
             Err(ApiError(ref err)) if attempts < MAX_ATTEMPTS => {
                 println!("failed.");
+                thread::sleep(Duration::from_millis((1000*attempts) as u64));
                 attempts += 1;
             },
             Err(err) => {
