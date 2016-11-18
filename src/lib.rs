@@ -87,7 +87,8 @@ impl EntryPoint for Algo {
 
 fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let data_api_work_directory = "data://.session";
-    let client = Algorithmia::client(NoAuth);
+    let data_api_work_directory = "data://.my/ProcessVideo";
+    let client = Algorithmia::default();
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 20;
     let threads = 13;
@@ -118,8 +119,8 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
 #[test]
 fn basic_test() {
     let mut obj = BTreeMap::new();
-    obj.insert("input_file".to_string(), Json::String("data://zeryx/Video/shorter_lounge.mp4".to_string()));
-    obj.insert("output_file".to_string(), Json::String("data://media/videos/shorter_lounge_filtered.mp4".to_string()));
+    obj.insert("input_file".to_string(), Json::String("data://zeryx/Video/inception_trailer.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://media/videos/altered_inception1.mp4".to_string()));
     obj.insert("algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
     obj.insert("fps".to_string(), Json::F64(15f64));
     let data = obj.to_json();

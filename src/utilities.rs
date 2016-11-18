@@ -17,7 +17,7 @@ static BATCH_INPUT: &'static str = "$BATCH_INPUT";
 static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
 static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
 static SINGLE_OUTPUT: &'static str = "$SINGLE_OUTPUT";
-static MAX_ATTEMPTS: usize = 3usize;
+static MAX_ATTEMPTS: usize = 15usize;
 
 #[derive(Debug, Clone)]
 pub struct SearchResult{
