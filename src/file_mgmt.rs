@@ -10,6 +10,7 @@ use video_error::VideoError;
 use rustc_serialize::json::{Json};
 use std::time::Duration;
 use std::thread;
+use std::error::Error as StdError;
 static MAX_ATTEMPTS: usize = 3usize;
 
 //gets any remote file, http/https or data connector
@@ -68,7 +69,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
             let mut output;
             loop {
                 let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
-                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}", url_dir, err.description(), err)});
+                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause())});
                 if response.is_ok() {
                     output = response.unwrap();
                     break;
