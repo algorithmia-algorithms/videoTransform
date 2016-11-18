@@ -21,6 +21,7 @@ use extract_executor::{advanced_extract, default_template_extract};
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
 use utilities;
+use uuid::Uuid;
 
 static MAX_FPS: f64 = 60f64;
 static MAX_FRAMES: u64 = 5000;
@@ -62,7 +63,9 @@ pub fn gather(ffmpeg: &FFMpeg,
               data: alter::Altered,
               original_file: &Path) -> Result<Gathered, VideoError> {
     println!("gathering frames and audio into video.");
-    let catted_video_no_audio = PathBuf::from(format!("/tmp/{}-{}", "temp", output_file.file_name().unwrap().to_str().unwrap()));
+    let filename = Uuid::new_v4();
+    let extension = try!(output_file.extension().ok_or(format!("failed to find a file extension for output file."))).to_str().unwrap();
+    let catted_video_no_audio = PathBuf::from(format!("/tmp/{}-{}.{}", "temp", filename, extension));
     try!(ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps()));
     let video_with_streams = try!(ffmpeg.attach_streams(&catted_video_no_audio, output_file, original_file));
     Ok(Gathered::new(video_with_streams, data.fps()))

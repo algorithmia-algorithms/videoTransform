@@ -69,7 +69,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
             let mut output;
             loop {
                 let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
-                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause())});
+                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause().map(|e| e.to_string()).unwrap_or("No cause".to_string()))});
                 if response.is_ok() {
                     output = response.unwrap();
                     break;
