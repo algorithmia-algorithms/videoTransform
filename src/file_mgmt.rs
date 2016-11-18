@@ -11,7 +11,7 @@ use rustc_serialize::json::{Json};
 use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;
-static MAX_ATTEMPTS: usize = 3usize;
+static MAX_ATTEMPTS: usize = 15usize;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
