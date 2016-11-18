@@ -27,8 +27,8 @@ use std::collections::BTreeMap;
 use rustc_serialize::json::{Json, ToJson};
 use uuid::Uuid;
 use structs::gathered::Gathered;
+use std::env;
 use structs::scattered::Scattered;
-#[derive(Default)]
 pub struct Algo;
 
 #[derive(Debug)]
@@ -52,14 +52,15 @@ macro_rules! str_field {
         let result = try!(field.as_string().ok_or(format!("missing field {}", $f)));
         result.to_string()
     }}
-    }
+}
 
 impl Default for Algo {
-  fn default() -> Algo {
-    env::set_var("RUST_LOG", "hyper=trace");
-    Algo
-  }
+    fn default() -> Algo {
+        env::set_var("RUST_LOG", "hyper=trace");
+        Algo
+    }
 }
+
 
 // Algo should implement EntryPoint or DecodedEntryPoint
 // and override at least one of the apply method variants
@@ -87,11 +88,9 @@ impl EntryPoint for Algo {
 fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let data_api_work_directory = "data://.session";
     let client = Algorithmia::client(NoAuth);
-//    let data_api_work_directory = "data://.my/ProcessVideo";
-//    let client = Algorithmia::client("simSH1MsxDwbvQ92Lkf7hn61Y5i1");
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 20;
-    let threads = 10;
+    let threads = 13;
     let ffmpeg_working_directory = PathBuf::from("/tmp/ffmpeg");
     let scattered_working_directory = PathBuf::from("/tmp/scattered_frames");
     let processed_working_directory = PathBuf::from("/tmp/processed_frames");
@@ -101,7 +100,6 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let input_uuid = Uuid::new_v4();
     let output_uuid = Uuid::new_v4();
     //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
-    let quality = true;
     let scatter_regex = format!("{}-%07d.png", input_uuid);
     let process_regex =format!("{}-%07d.png", output_uuid);
     try!(utilities::early_exit(&client, &entry.output_file));
@@ -114,7 +112,6 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let gathered: Gathered = try!(processing::gather(&ffmpeg, &local_output_file, processed_data, scatter_data.original_video()));
     let uploaded = try!(file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &client));
     let result = Exit{output_file: uploaded};
-
     Ok(AlgoOutput::from(&result))
 }
 
