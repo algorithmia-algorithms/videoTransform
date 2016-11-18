@@ -29,6 +29,7 @@ use uuid::Uuid;
 use structs::gathered::Gathered;
 use std::env;
 use structs::scattered::Scattered;
+#[derive(Default)]
 pub struct Algo;
 
 #[derive(Debug)]
@@ -54,12 +55,12 @@ macro_rules! str_field {
     }}
 }
 
-impl Default for Algo {
-    fn default() -> Algo {
-        env::set_var("RUST_LOG", "hyper=trace");
-        Algo
-    }
-}
+// impl Default for Algo {
+//     fn default() -> Algo {
+//         env::set_var("RUST_LOG", "hyper=trace");
+//         Algo
+//     }
+// }
 
 
 // Algo should implement EntryPoint or DecodedEntryPoint
