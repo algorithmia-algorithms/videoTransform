@@ -54,6 +54,13 @@ macro_rules! str_field {
     }}
     }
 
+impl Default for Algo {
+  fn default() -> Algo {
+    env::set_var("RUST_LOG", "hyper=trace");
+    Algo
+  }
+}
+
 // Algo should implement EntryPoint or DecodedEntryPoint
 // and override at least one of the apply method variants
 impl EntryPoint for Algo {
