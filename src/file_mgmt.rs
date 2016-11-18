@@ -33,7 +33,7 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
         }
             else if attempts > MAX_ATTEMPTS {
                 let err = result.err().unwrap();
-                return Err(format!("failed {} times to download file {} : \n{}\n{}", attempts, url, err.description(), err).into())
+                return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
             }
         else {
             thread::sleep(Duration::from_millis((1000*attempts) as u64));
@@ -75,7 +75,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
                 }
                     else if attempts > MAX_ATTEMPTS {
                         let err = response.err().unwrap();
-                        return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+                        return Err(format!("failed {} times to upload file {} : \n{}\n{}", attempts, local_file.display(), err).into())
                     }
                 else {
                     thread::sleep(Duration::from_millis((1000*attempts) as u64));
