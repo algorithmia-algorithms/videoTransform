@@ -1,147 +1,191 @@
-use algorithmia::{Algorithmia};
-use std;
-use std::path::*;
-use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata};
-use std::io::{Read, Write};
-use hyper::Client;
-use hyper::header::Connection;
-use regex::Regex;
+extern crate algorithmia;
+extern crate rustc_serialize;
+extern crate hyper;
+extern crate regex;
+extern crate rayon;
+extern crate uuid;
+extern crate either;
+extern crate time;
+#[macro_use] extern crate wrapped_enum;
+#[macro_use] extern crate lazy_static;
+use algorithmia::{Algorithmia, NoAuth};
+use algorithmia::algo::*;
+mod video_error;
+mod file_mgmt;
+mod ffmpeg;
+mod processing;
+mod structs;
+mod utilities;
+mod alter_executor;
+mod extract_executor;
+mod alter_handling;
+mod extract_handling;
 use video_error::VideoError;
-use rustc_serialize::json::{Json};
-use std::time::Duration;
-use std::thread;
-use std::error::Error as StdError;
-static MAX_ATTEMPTS: usize = 3usize;
+use ffmpeg::FFMpeg;
+use std::path::*;
+use std::collections::BTreeMap;
+use rustc_serialize::json::{Json, ToJson};
+use uuid::Uuid;
+use structs::gathered::Gathered;
+use std::env;
+use structs::scattered::Scattered;
+pub struct Algo;
 
-//gets any remote file, http/https or data connector
-pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
-    println!("{:?}", local_path.display());
-    let local_dir = local_path.parent().unwrap();
-    create_directory(local_dir);
-    let tmp_url = url.clone();
-    let prefix: &str = tmp_url.split("://").next().unwrap().clone();
-    let mut attempts = 0;
-    let mut output;
-    loop {
-        let result = if prefix == "http" || prefix == "https" {
-            get_file_from_html(url.to_string(), local_path)
-        } else {
-                get_file_from_algorithmia(url.to_string(), local_path, client)
-            };
-        if result.is_ok() {
-            output = result.unwrap();
-            break;
-        }
-            else if attempts > MAX_ATTEMPTS {
-                let err = result.err().unwrap();
-                return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
-            }
-        else {
-            thread::sleep(Duration::from_millis((1000*attempts) as u64));
-            attempts += 1;
-        }
+#[derive(Debug)]
+struct Entry{
+    input_file: String,
+    output_file: String,
+    algorithm: String,
+    advanced_input: Option<Json>,
+    fps: Option<f64>,
+}
+
+#[derive(Debug, RustcEncodable)]
+struct Exit{
+    output_file: String
+}
+
+macro_rules! str_field {
+($o:expr, $f:expr) => {{
+        let field: &Json = try!($o.get($f).ok_or(format!("missing field {}", $f)));
+        // try parsing the field as a string
+        let result = try!(field.as_string().ok_or(format!("missing field {}", $f)));
+        result.to_string()
+    }}
+}
+
+impl Default for Algo {
+    fn default() -> Algo {
+        env::set_var("RUST_LOG", "hyper=trace");
+        Algo
     }
-    Ok(output)
 }
 
-fn get_file_from_html(url: String, local_path: &Path) -> Result<PathBuf, VideoError> {
-    let client = Client::new();
-    let mut response = try!(client.get(&url).header(Connection::close()).send().map_err(|err| format!("couldn't download file from url: {} \n{}", url, err)));
-    let local_file = try!(File::create(local_path).map_err(|err| format!("couldn't create local file: {:?} \n{}", local_path.to_str().unwrap(), err)));
-    let mut body = String::new();
-    response.read_to_string(&mut body).unwrap();
-    let mut writer = std::io::BufWriter::new(&local_file);
-    writer.write_all(body.as_bytes());
-    Ok(PathBuf::from(local_path))
-}
 
-fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
-    let mut remote_file = try!(client.file(&url).get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err)));
-    let mut local_file = try!(File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err)));
-    try!(std::io::copy(&mut remote_file, &mut local_file).map_err(|err| format ! ("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err)));
-    Ok(PathBuf::from(local_path))
-}
-
-pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
-    match local_file.exists() {
-        true => {
-            let mut attempts = 0;
-            let mut output;
-            loop {
-                let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
-                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause().map(|e| e.to_string()).unwrap_or("No cause".to_string()))});
-                if response.is_ok() {
-                    output = response.unwrap();
-                    break;
-                }
-                    else if attempts > MAX_ATTEMPTS {
-                        let err = response.err().unwrap();
-                        return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
-                    }
-                else {
-                    thread::sleep(Duration::from_millis((1000*attempts) as u64));
-                    attempts += 1;
+// Algo should implement EntryPoint or DecodedEntryPoint
+// and override at least one of the apply method variants
+impl EntryPoint for Algo {
+    fn apply_json(&self, input: &Json) -> Result<AlgoOutput, Box<std::error::Error>> {
+        match input.as_object() {
+            Some(obj) => {
+                let entry = Entry {
+                    input_file: str_field!(&obj, "input_file"),
+                    output_file: str_field!(&obj, "output_file"),
+                    algorithm: str_field!(&obj, "algorithm"),
+                    advanced_input: obj.get("advanced_input").cloned(),
+                    fps: obj.get("fps").and_then(|ref fps| {fps.as_f64()})
+                };
+                match helper(entry) {
+                    Ok(output) => Ok(output),
+                    Err(err) => Err(format!("error detected: \n{}", err).into())
                 }
             }
-            Ok(url_dir.to_string())
+            None => Err(format!("failed to parse input as json.").into())
         }
-        false => {Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())}
     }
 }
 
-pub fn create_directory(directory: &Path) -> () {
-    create_dir_all(directory);
-    ()
+fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
+    let data_api_work_directory = "data://.session";
+    let client = Algorithmia::client(NoAuth);
+    let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
+    let batch_size = 20;
+    let threads = 13;
+    let ffmpeg_working_directory = PathBuf::from("/tmp/ffmpeg");
+    let scattered_working_directory = PathBuf::from("/tmp/scattered_frames");
+    let processed_working_directory = PathBuf::from("/tmp/processed_frames");
+    let video_working_directory = PathBuf::from("/tmp/input_video");
+    let local_output_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), entry.output_file.split("/").last().unwrap().clone()));
+    let local_input_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), entry.input_file.split("/").last().unwrap().clone()));
+    let input_uuid = Uuid::new_v4();
+    let output_uuid = Uuid::new_v4();
+    //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
+    let scatter_regex = format!("{}-%07d.png", input_uuid);
+    let process_regex =format!("{}-%07d.png", output_uuid);
+    try!(utilities::early_exit(&client, &entry.output_file));
+    //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
+    file_mgmt::clean_up(&scattered_working_directory, &processed_working_directory);
+    let ffmpeg: FFMpeg = try!(ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client));
+    let video = try!(file_mgmt::get_file(&entry.input_file, &local_input_file, &client));
+    let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps));
+    let processed_data = try!(processing::alter(&client, &entry.algorithm, entry.advanced_input.as_ref(), &scatter_data, data_api_work_directory, &processed_working_directory, &process_regex, threads, batch_size));
+    let gathered: Gathered = try!(processing::gather(&ffmpeg, &local_output_file, processed_data, scatter_data.original_video()));
+    let uploaded = try!(file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &client));
+    let result = Exit{output_file: uploaded};
+    Ok(AlgoOutput::from(&result))
 }
 
-pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
-    let meta = try!(metadata(file));
-    Ok(meta.len() / 1000000u64)
+#[test]
+fn basic_test() {
+    let mut obj = BTreeMap::new();
+    obj.insert("input_file".to_string(), Json::String("data://zeryx/Video/shorter_lounge.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://media/videos/shorter_lounge_filtered.mp4".to_string()));
+    obj.insert("algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
+    obj.insert("fps".to_string(), Json::F64(15f64));
+    let data = obj.to_json();
+    println!("data: {:?}", &data);
+    let result = Algo.apply_json(&data);
+    let test: bool = match result {
+        Ok(output) => {
+            match output {
+                AlgoOutput::Text(text) => {
+                    println!("text: {}", text);
+                    true
+                },
+                AlgoOutput::Json(json) => {
+                    println!("json: {}", json);
+                    true
+                }
+                _ => {
+                    println!("failed");
+                    false
+                }
+            }
+        },
+        Err(failure) => {
+            println!("{}", failure);
+            false
+        }
+    };
+    assert!(test);
 }
 
-pub fn clean_up(original_dir: &Path, process_dir: &Path) -> Result<(), VideoError> {
-    match (remove_dir_all(original_dir), remove_dir_all(process_dir)) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Err(err), _) => Err(err.into()),
-        (_, _) => Err("failed to clean all directories!".to_string().into())
-    }
+#[test]
+fn advanced_test() {
+    let mut obj = BTreeMap::new();
+    let mut advanced = BTreeMap::new();
+    advanced.insert("images".to_string(), Json::String("$BATCH_INPUT".to_string()));
+    advanced.insert("savePaths".to_string(), Json::String("$BATCH_OUTPUT".to_string()));
+    advanced.insert("filterName".to_string(), Json::String("far_away".to_string()));
+    obj.insert("input_file".to_string(), Json::String("data://quality/Videos/inception_trailer.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_filtered.mp4".to_string()));
+    obj.insert("algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
+    obj.insert("fps".to_string(), Json::F64(15f64));
+    obj.insert("advanced_input".to_string(), Json::Object(advanced));
+    let data = obj.to_json();
+    println!("data: {:?}", &data);
+    let result = Algo.apply_json(&data);
+    let test: bool = match result {
+        Ok(output) => {
+            match output {
+                AlgoOutput::Text(text) => {
+                    println!("text: {}", text);
+                    true
+                },
+                AlgoOutput::Json(json) => {
+                    println!("json: {}", json);
+                    true
+                }
+                _ => {
+                    println!("failed");
+                    false
+                }
+            }
+        },
+        Err(failure) => {
+            println!("{}", failure);
+            false
+        }
+    };
+    assert!(test);
 }
-
-
-pub fn get_files_and_sort(frames_path: &Path) -> Vec<PathBuf> {
-    let paths: ReadDir = read_dir(frames_path).unwrap();
-    let mut files: Vec<PathBuf> = paths.filter_map(|entry| {
-        entry.ok().map(|e| e.path())}).collect();
-    files.sort();
-    files
-}
-
-pub fn json_to_file(json: &Json, json_path: &Path) -> Result<PathBuf, VideoError> {
-    let mut local_file: File = try!(File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)}));
-    let mut writer = std::io::BufWriter::new(local_file);
-    try!(writer.write_all(json.to_string().as_bytes()));
-    Ok(PathBuf::from(json_path))
-
-}
-
-//used with Process to create file names from a regex filename containing a %07d & iteration number.
-pub fn from_regex(regex: &str, iter: usize) -> Result<String, VideoError> {
-    lazy_static! {
-        static ref FINDER: Regex = Regex::new(r"%([0-9][0-9])d").unwrap();
-    }
-    let cap = FINDER.captures_iter(regex).next().unwrap();
-    let num_digits = try!(cap.at(1).unwrap().parse::<usize>());
-    Ok(regex.replace(&format!("%0{}d", num_digits), &format!("{:0width$}", iter, width = num_digits)))
-}
-
-
-
-
-//#[test]
-//fn regex_test () {
-//    let regex = "frame-%07d.png";
-//    let iter: usize = 1343;
-//    let file_name: String = from_regex(regex, iter));
-//    println!("filename: {}", &file_name);
-//    assert!("frame-0001343.png".eq(&file_name));
-//}
