@@ -87,7 +87,7 @@ impl EntryPoint for Algo {
 
 fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let data_api_work_directory = "data://.session";
-    let data_api_work_directory = "data://.my/ProcessVideo";
+//    let data_api_work_directory = "data://.my/ProcessVideo";
     let client = Algorithmia::default();
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 20;

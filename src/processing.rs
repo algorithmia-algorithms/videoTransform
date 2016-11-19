@@ -100,7 +100,7 @@ pub fn alter(client: &Algorithmia,
                 default_template_alter(client, data, remote_dir, local_out_dir, output_regex, batch_size, &alter_handling::colorful_colorization)
             } else {
                 println!("failed to pattern match anything.");
-                Err(String::from("not implemented.").into())
+                Err(String::from("No default algorithm definition, advanced_input required.").into())
             }
         }
     }
