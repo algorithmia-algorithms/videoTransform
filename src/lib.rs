@@ -190,3 +190,46 @@ fn advanced_test() {
     };
     assert!(test);
 }
+
+
+#[test]
+fn array_advanced_test() {
+    let mut obj = BTreeMap::new();
+    let array: Vec<Json> = vec![
+        Json::String("$SINGLE_INPUT".to_string()),
+        Json::String("$SINGLE_OUTPUT".to_string()),
+        Json::I64(200),
+        Json::I64(200)
+    ];
+    obj.insert("input_file".to_string(), Json::String("data://quality/Videos/inception_trailer.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_filtered.mp4".to_string()));
+    obj.insert("algorithm".to_string(), Json::String("algo://opencv/SmartThumbnail".to_string()));
+    obj.insert("fps".to_string(), Json::F64(15f64));
+    obj.insert("advanced_input".to_string(), Json::Array(array));
+    let data = obj.to_json();
+    println!("data: {:?}", &data);
+    let result = Algo.apply_json(&data);
+    let test: bool = match result {
+        Ok(output) => {
+            match output {
+                AlgoOutput::Text(text) => {
+                    println!("text: {}", text);
+                    true
+                },
+                AlgoOutput::Json(json) => {
+                    println!("json: {}", json);
+                    true
+                }
+                _ => {
+                    println!("failed");
+                    false
+                }
+            }
+        },
+        Err(failure) => {
+            println!("{}", failure);
+            false
+        }
+    };
+    assert!(test);
+}

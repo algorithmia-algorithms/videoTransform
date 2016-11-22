@@ -11,7 +11,7 @@ use rustc_serialize::json::{Json};
 use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;
-static MAX_ATTEMPTS: usize = 15usize;
+static MAX_ATTEMPTS_DATA: usize = 15usize;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
@@ -32,7 +32,7 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
             output = result.unwrap();
             break;
         }
-            else if attempts > MAX_ATTEMPTS {
+            else if attempts > MAX_ATTEMPTS_DATA {
                 let err = result.err().unwrap();
                 return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
             }
@@ -74,7 +74,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
                     output = response.unwrap();
                     break;
                 }
-                    else if attempts > MAX_ATTEMPTS {
+                    else if attempts > MAX_ATTEMPTS_DATA {
                         let err = response.err().unwrap();
                         return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
                     }

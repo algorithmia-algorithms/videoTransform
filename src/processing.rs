@@ -105,6 +105,7 @@ pub fn alter(client: &Algorithmia,
         }
     }
 }
+
 //extract branch, used by VideoMetadataExtraction
 pub fn extract(client: &Algorithmia,
                algorithm: &str,
