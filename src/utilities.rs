@@ -146,8 +146,16 @@ fn replace_json(base: &mut Json, paths: &mut VecDeque<String>, array_iter: Optio
     } else { Err(format!("something went wrong, you should never get here.").into()) }
 }
 
-//traverses the json blob using the Path variable, finds and replaces a key/value pair.
-pub fn prepare_json(obj: &SearchResult, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Json, VideoError> {
+pub fn prepare_json_extract(obj: &SearchResult, input: Either<&Vec<String>, &str>) -> Result<Json, VideoError> {
+    let mut mutable: Json = obj.source().clone();
+    let mut in_path = obj.in_path().clone();
+    //for input
+    try!(replace_json(&mut mutable, &mut in_path, obj.in_array_iter(), input));
+    Ok(mutable)
+}
+
+
+pub fn prepare_json_alter(obj: &SearchResult, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Json, VideoError> {
     let mut mutable: Json = obj.source().clone();
     let mut in_path = obj.in_path().clone();
     let mut out_path = obj.out_path().clone();

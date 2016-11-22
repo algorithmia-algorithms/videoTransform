@@ -98,7 +98,7 @@ pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String
 
     try!(batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client()));
 
-    let json: Json = try!(prepare_json(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames)));
+    let json: Json = try!(prepare_json_alter(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames)));
     println!("formatted json: \n {:?}", &json);
     try!(try_algorithm(input.client(), &algorithm, &json));
 
@@ -117,7 +117,7 @@ pub fn advanced_single(input: &alter::Alter, batch: Vec<usize>, algorithm: Strin
         .iter().map(|str| {PathBuf::from(str.clone())}).collect::<Vec<PathBuf>>();
 
     try!(batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client()));
-    let json: Json = try!(prepare_json(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap())));
+    let json: Json = try!(prepare_json_alter(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap())));
     println!("formatted json: \n {:?}", &json);
     try!(try_algorithm(input.client(), &algorithm, &json));
     let downloaded = try!(batch_get_file( &local_post_frames, &remote_post_frames, input.client()));

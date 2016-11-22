@@ -26,8 +26,8 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
         let result = if prefix == "http" || prefix == "https" {
             get_file_from_html(url.to_string(), local_path)
         } else {
-                get_file_from_algorithmia(url.to_string(), local_path, client)
-            };
+            get_file_from_algorithmia(url.to_string(), local_path, client)
+        };
         if result.is_ok() {
             output = result.unwrap();
             break;
@@ -36,10 +36,10 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
                 let err = result.err().unwrap();
                 return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
             }
-        else {
-            thread::sleep(Duration::from_millis((1000*attempts) as u64));
-            attempts += 1;
-        }
+                else {
+                    thread::sleep(Duration::from_millis((1000*attempts) as u64));
+                    attempts += 1;
+                }
     }
     Ok(output)
 }
@@ -78,10 +78,10 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
                         let err = response.err().unwrap();
                         return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
                     }
-                else {
-                    thread::sleep(Duration::from_millis((1000*attempts) as u64));
-                    attempts += 1;
-                }
+                        else {
+                            thread::sleep(Duration::from_millis((1000*attempts) as u64));
+                            attempts += 1;
+                        }
             }
             Ok(url_dir.to_string())
         }
@@ -99,12 +99,10 @@ pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
     Ok(meta.len() / 1000000u64)
 }
 
-pub fn clean_up(original_dir: &Path, process_dir: &Path) -> Result<(), VideoError> {
-    match (remove_dir_all(original_dir), remove_dir_all(process_dir)) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Err(err), _) => Err(err.into()),
-        (_, _) => Err("failed to clean all directories!".to_string().into())
-    }
+pub fn clean_up(original_dir: Option<&Path>, process_dir: Option<&Path>) -> () {
+    original_dir.map(|dir| { remove_dir_all(dir)});
+    process_dir.map(|dir| { remove_dir_all(dir)});
+    ()
 }
 
 

@@ -105,7 +105,7 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let process_regex =format!("{}-%07d.png", output_uuid);
     try!(utilities::early_exit(&client, &entry.output_file));
     //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
-    file_mgmt::clean_up(&scattered_working_directory, &processed_working_directory);
+    file_mgmt::clean_up(Some(&scattered_working_directory), Some(&processed_working_directory));
     let ffmpeg: FFMpeg = try!(ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client));
     let video = try!(file_mgmt::get_file(&entry.input_file, &local_input_file, &client));
     let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps));
