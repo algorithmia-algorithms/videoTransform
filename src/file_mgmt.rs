@@ -63,29 +63,26 @@ fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmi
 }
 
 pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
-    match local_file.exists() {
-        true => {
-            let mut attempts = 0;
-            let mut output;
-            loop {
-                let mut file = try!(File::open(local_file).map_err(|err| {format!("failed to open file: {}\n{}",local_file.display(), err)}));
-                let response = client.file(url_dir).put(&mut file).map_err(|err| {format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause().map(|e| e.to_string()).unwrap_or("No cause".to_string()))});
-                if response.is_ok() {
-                    output = response.unwrap();
-                    break;
-                }
-                    else if attempts > MAX_ATTEMPTS_DATA {
-                        let err = response.err().unwrap();
-                        return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
-                    }
-                        else {
-                            thread::sleep(Duration::from_millis((1000*attempts) as u64));
-                            attempts += 1;
-                        }
+    if local_file.exists() {
+        let mut attempts = 0;
+        let mut output;
+        loop {
+            let mut file = try!(File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) }));
+            let response = client.file(url_dir).put(&mut file).map_err(|err| { format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause().map(|e| e.to_string()).unwrap_or("No cause".to_string())) });
+            if response.is_ok() {
+                output = response.unwrap();
+                break;
+            } else if attempts > MAX_ATTEMPTS_DATA {
+                let err = response.err().unwrap();
+                return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+            } else {
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
             }
-            Ok(url_dir.to_string())
         }
-        false => {Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())}
+        Ok(url_dir.to_string())
+    } else {
+        Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())
     }
 }
 

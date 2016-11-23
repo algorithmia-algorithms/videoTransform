@@ -24,7 +24,7 @@ use utilities;
 use uuid::Uuid;
 
 static MAX_FPS: f64 = 60f64;
-static MAX_FRAMES: u64 = 5000;
+static MAX_FRAMES: u64 = 10000;
 
 //split video limits the fps to FPSMAX, if its higher we only sample at FPSMAX
 pub fn scatter(ffmpeg: &FFMpeg,

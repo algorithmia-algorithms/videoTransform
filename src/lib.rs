@@ -29,6 +29,7 @@ use uuid::Uuid;
 use structs::gathered::Gathered;
 use std::env;
 use structs::scattered::Scattered;
+use time::PreciseTime;
 pub struct Algo;
 
 #[derive(Debug)]
@@ -101,6 +102,8 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let input_uuid = Uuid::new_v4();
     let output_uuid = Uuid::new_v4();
     //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
+//    let scatter_regex = format!("{}-%07d.jpg", input_uuid);
+//    let process_regex =format!("{}-%07d.jpg", output_uuid);
     let scatter_regex = format!("{}-%07d.png", input_uuid);
     let process_regex =format!("{}-%07d.png", output_uuid);
     try!(utilities::early_exit(&client, &entry.output_file));
@@ -120,12 +123,15 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
 fn basic_test() {
     let mut obj = BTreeMap::new();
     obj.insert("input_file".to_string(), Json::String("data://zeryx/Video/inception_trailer.mp4".to_string()));
-    obj.insert("output_file".to_string(), Json::String("data://media/videos/altered_inception1.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_filtered.mp4".to_string()));
     obj.insert("algorithm".to_string(), Json::String("algo://deeplearning/DeepFilter".to_string()));
     obj.insert("fps".to_string(), Json::F64(15f64));
     let data = obj.to_json();
     println!("data: {:?}", &data);
+    let start = PreciseTime::now();
     let result = Algo.apply_json(&data);
+    let end = PreciseTime::now();
+    println!("{} seconds to complete.", start.to(end));
     let test: bool = match result {
         Ok(output) => {
             match output {
@@ -202,7 +208,7 @@ fn array_advanced_test() {
         Json::I64(200)
     ];
     obj.insert("input_file".to_string(), Json::String("data://quality/Videos/inception_trailer.mp4".to_string()));
-    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_filtered.mp4".to_string()));
+    obj.insert("output_file".to_string(), Json::String("data://quality/Videos/inception_thumbnail.mp4".to_string()));
     obj.insert("algorithm".to_string(), Json::String("algo://opencv/SmartThumbnail".to_string()));
     obj.insert("fps".to_string(), Json::F64(15f64));
     obj.insert("advanced_input".to_string(), Json::Array(array));

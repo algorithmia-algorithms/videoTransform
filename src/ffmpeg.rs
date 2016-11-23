@@ -110,17 +110,6 @@ impl FFMpeg {
         }
     }
 
-    //concatenates frames into a video using ffmpeg.
-    //    pub fn cat_video(&self, output_file: &str, cat_file: &str, fps: f64) -> Result<String, VideoError> {
-    //
-    //        let response = try!(Command::new(self.ffmpeg())
-    //            .args(&["-loglevel", "error", "-r", &fps.to_string(), "-f", "concat", "-i", cat_file, output_file, "-y"]).output());
-    //        if response.stderr.is_empty() {
-    //            Ok(output_file.to_string())
-    //        } else {
-    //            Err(format!("ffmpeg error, could not concat frames: \n {}", try!(String::from_utf8(response.stderr))).into())
-    //        }
-    //    }
     pub fn cat_video(&self, output_file: &Path, directory: &Path, regex: &str, fps: f64) -> Result<PathBuf, VideoError> {
         let complete_regex = format!("{}/{}", directory.display(), regex);
         let response = try!(Command::new(self.ffmpeg())
@@ -140,6 +129,7 @@ impl FFMpeg {
         let response = try!(Command::new(self.ffmpeg())
             .args(&["-loglevel", "error",
                 "-i", video_path.to_str().unwrap(),
+//                "-q:v", "20",
                 "-vf",
                 &format!("fps={}", fps),
                 regex, "-y"]).current_dir(frames_path).output());
