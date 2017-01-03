@@ -2,12 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e8007e73-2422-4df6-9adb-ec9ac25f9cec" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Cargo__VideoTransform_.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Cargo__VideoTransform_.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/ffmpeg.rs" afterPath="$PROJECT_DIR$/src/ffmpeg.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/lib.rs" afterPath="$PROJECT_DIR$/src/lib.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/processing.rs" afterPath="$PROJECT_DIR$/src/processing.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/utilities.rs" afterPath="$PROJECT_DIR$/src/utilities.rs" />
     </list>
     <ignored path="VideoTransform.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -30,8 +25,8 @@
       <file leaf-file-name="lib.rs" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/lib.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="138">
-              <caret line="103" column="30" lean-forward="false" selection-start-line="103" selection-start-column="30" selection-end-line="103" selection-end-column="30" />
+            <state relative-caret-position="210">
+              <caret line="106" column="0" lean-forward="false" selection-start-line="106" selection-start-column="0" selection-end-line="106" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -40,8 +35,8 @@
       <file leaf-file-name="processing.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/processing.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="293">
-              <caret line="52" column="38" lean-forward="true" selection-start-line="52" selection-start-column="38" selection-end-line="52" selection-end-column="38" />
+            <state relative-caret-position="534">
+              <caret line="58" column="1" lean-forward="true" selection-start-line="29" selection-start-column="0" selection-end-line="58" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -60,7 +55,7 @@
       <file leaf-file-name="ffmpeg.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/ffmpeg.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="254">
+            <state relative-caret-position="578">
               <caret line="132" column="81" lean-forward="true" selection-start-line="132" selection-start-column="81" selection-end-line="132" selection-end-column="81" />
               <folding />
             </state>
@@ -221,7 +216,7 @@
       <recent name="$PROJECT_DIR$/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo Command.Test basic_test">
+  <component name="RunManager" selected="Cargo Command.Test basic_test (1)">
     <configuration default="false" name="Test advanced_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true" show_console_on_std_err="false" show_console_on_std_out="false">
       <option name="additionalArguments" value="--lib advanced_test -- --nocapture" />
       <option name="command" value="test" />
@@ -253,6 +248,16 @@
         <map>
           <entry key="ALGORITHMIA_API_KEY" value="simSH1MsxDwbvQ92Lkf7hn61Y5i1" />
         </map>
+      </option>
+      <option name="printBacktrace" value="false" />
+      <module name="VideoTransform" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Test basic_test (1)" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true" show_console_on_std_err="false" show_console_on_std_out="false">
+      <option name="additionalArguments" value="--lib basic_test" />
+      <option name="command" value="test" />
+      <option name="environmentVariables">
+        <map />
       </option>
       <option name="printBacktrace" value="false" />
       <module name="VideoTransform" />
@@ -486,16 +491,18 @@
       <envs />
       <method />
     </configuration>
-    <list size="3">
+    <list size="4">
       <item index="0" class="java.lang.String" itemvalue="Cargo Command.Test advanced_test" />
       <item index="1" class="java.lang.String" itemvalue="Cargo Command.Test basic_test" />
       <item index="2" class="java.lang.String" itemvalue="Cargo Command.Test array_advanced_test" />
+      <item index="3" class="java.lang.String" itemvalue="Cargo Command.Test basic_test (1)" />
     </list>
     <recent_temporary>
-      <list size="3">
-        <item index="0" class="java.lang.String" itemvalue="Cargo Command.Test basic_test" />
-        <item index="1" class="java.lang.String" itemvalue="Cargo Command.Test array_advanced_test" />
-        <item index="2" class="java.lang.String" itemvalue="Cargo Command.Test advanced_test" />
+      <list size="4">
+        <item index="0" class="java.lang.String" itemvalue="Cargo Command.Test basic_test (1)" />
+        <item index="1" class="java.lang.String" itemvalue="Cargo Command.Test basic_test" />
+        <item index="2" class="java.lang.String" itemvalue="Cargo Command.Test array_advanced_test" />
+        <item index="3" class="java.lang.String" itemvalue="Cargo Command.Test advanced_test" />
       </list>
     </recent_temporary>
   </component>
@@ -943,22 +950,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/processing.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="293">
-          <caret line="52" column="38" lean-forward="true" selection-start-line="52" selection-start-column="38" selection-end-line="52" selection-end-column="38" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/ffmpeg.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="254">
-          <caret line="132" column="81" lean-forward="true" selection-start-line="132" selection-start-column="81" selection-end-line="132" selection-end-column="81" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/alter_handling.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1296">
@@ -967,10 +958,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/processing.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="534">
+          <caret line="58" column="1" lean-forward="true" selection-start-line="29" selection-start-column="0" selection-end-line="58" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ffmpeg.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="578">
+          <caret line="132" column="81" lean-forward="true" selection-start-line="132" selection-start-column="81" selection-end-line="132" selection-end-column="81" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="138">
-          <caret line="103" column="30" lean-forward="false" selection-start-line="103" selection-start-column="30" selection-end-line="103" selection-end-column="30" />
+        <state relative-caret-position="210">
+          <caret line="106" column="0" lean-forward="false" selection-start-line="106" selection-start-column="0" selection-end-line="106" selection-end-column="0" />
           <folding />
         </state>
       </provider>

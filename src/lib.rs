@@ -89,9 +89,10 @@ impl EntryPoint for Algo {
 }
 
 fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
-    let data_api_work_directory = "data://.session";
-//    let data_api_work_directory = "data://.my/ProcessVideo";
-    let client = Algorithmia::default();
+//    let data_api_work_directory = "data://.session";
+    let data_api_work_directory = "data://.my/ProcessVideo";
+//    let client = Algorithmia::default();
+    let client = Algorithmia::client("simA8y8WJtWGW+4h1hB0sLKnvb11");
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 20;
     let threads = 13;
@@ -103,9 +104,8 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let local_input_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), entry.input_file.split("/").last().unwrap().clone()));
     let input_uuid = Uuid::new_v4();
     let output_uuid = Uuid::new_v4();
-    //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
-    let scatter_regex = if entry.compression_factor.is_some() {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.jpg", input_uuid)};
-    let process_regex =if entry.compression_factor.is_some() {format!("{}-%07d.jpg", output_uuid)} else {format!("{}-%07d.jpg", output_uuid)};
+    let scatter_regex = if entry.compression_factor.is_some() {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.png", input_uuid)};
+    let process_regex =if entry.compression_factor.is_some() {format!("{}-%07d.jpg", output_uuid)} else {format!("{}-%07d.png", output_uuid)};
     try!(utilities::early_exit(&client, &entry.output_file));
     //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
     file_mgmt::clean_up(Some(&scattered_working_directory), Some(&processed_working_directory));
