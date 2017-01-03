@@ -31,7 +31,8 @@ pub fn scatter(ffmpeg: &FFMpeg,
                video_file: &Path,
                frame_dir: &Path,
                regex: &str,
-               fps: Option<f64>) -> Result<Scattered, VideoError> {
+               fps: Option<f64>,
+                compression_factor: Option<u64>) -> Result<Scattered, VideoError> {
     file_mgmt::create_directory(frame_dir);
     println!("scattering video into frames and audio");
     let origin_fps = try!(ffmpeg.get_video_fps(video_file));
@@ -49,7 +50,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
     let duration:f64 = try!(ffmpeg.get_video_duration(video_file));
     let num_frames: u64 = (duration*output_fps).ceil() as u64;
     if num_frames <= MAX_FRAMES {
-        let result = try!(ffmpeg.split_video(video_file, frame_dir, &regex, output_fps));
+        let result = try!(ffmpeg.split_video(video_file, frame_dir, &regex, output_fps, &compression_factor));
         Ok(Scattered::new(PathBuf::from(frame_dir), result.len(), PathBuf::from(video_file), output_fps, regex.to_string()))
     }
         else {

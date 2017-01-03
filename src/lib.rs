@@ -39,6 +39,7 @@ struct Entry{
     algorithm: String,
     advanced_input: Option<Json>,
     fps: Option<f64>,
+    compression_factor: Option<u64>,
 }
 
 #[derive(Debug, RustcEncodable)]
@@ -74,8 +75,9 @@ impl EntryPoint for Algo {
                     output_file: str_field!(&obj, "output_file"),
                     algorithm: str_field!(&obj, "algorithm"),
                     advanced_input: obj.get("advanced_input").cloned(),
-                    fps: obj.get("fps").and_then(|ref fps| {fps.as_f64()})
-                };
+                    fps: obj.get("fps").and_then(|ref fps| {fps.as_f64()}),
+                    compression_factor: obj.get("compression_factor").and_then(|ref comp| {comp.as_u64()}),
+                    };
                 match helper(entry) {
                     Ok(output) => Ok(output),
                     Err(err) => Err(format!("error detected: \n{}", err).into())
@@ -102,16 +104,14 @@ fn helper(entry: Entry)-> Result<AlgoOutput, VideoError>{
     let input_uuid = Uuid::new_v4();
     let output_uuid = Uuid::new_v4();
     //TODO: determine if we want a quality operator to dynamically adjust file compression ratios to improve performance
-//    let scatter_regex = format!("{}-%07d.jpg", input_uuid);
-//    let process_regex =format!("{}-%07d.jpg", output_uuid);
-    let scatter_regex = format!("{}-%07d.png", input_uuid);
-    let process_regex =format!("{}-%07d.png", output_uuid);
+    let scatter_regex = if entry.compression_factor.is_some() {format!("{}-%07d.jpg", input_uuid)} else {format!("{}-%07d.jpg", input_uuid)};
+    let process_regex =if entry.compression_factor.is_some() {format!("{}-%07d.jpg", output_uuid)} else {format!("{}-%07d.jpg", output_uuid)};
     try!(utilities::early_exit(&client, &entry.output_file));
     //we don't care about the result of clean_up, if it deletes stuff good, if it doesn't thats fine too.
     file_mgmt::clean_up(Some(&scattered_working_directory), Some(&processed_working_directory));
     let ffmpeg: FFMpeg = try!(ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client));
     let video = try!(file_mgmt::get_file(&entry.input_file, &local_input_file, &client));
-    let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps));
+    let scatter_data: Scattered = try!(processing::scatter(&ffmpeg, &video, &scattered_working_directory, &scatter_regex, entry.fps, entry.compression_factor));
     let processed_data = try!(processing::alter(&client, &entry.algorithm, entry.advanced_input.as_ref(), &scatter_data, data_api_work_directory, &processed_working_directory, &process_regex, threads, batch_size));
     let gathered: Gathered = try!(processing::gather(&ffmpeg, &local_output_file, processed_data, scatter_data.original_video()));
     let uploaded = try!(file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &client));

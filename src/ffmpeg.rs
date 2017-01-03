@@ -125,14 +125,24 @@ impl FFMpeg {
         }
     }
     //splits a video into frames at a given fps using ffmpeg, if no quality we use jpeg image compression based on the input video filesize.
-    pub fn split_video(&self, video_path: &Path, frames_path: &Path, regex: &str, fps: f64) -> Result<Vec<PathBuf>, VideoError> {
-        let response = try!(Command::new(self.ffmpeg())
-            .args(&["-loglevel", "error",
-                "-i", video_path.to_str().unwrap(),
-//                "-q:v", "20",
-                "-vf",
-                &format!("fps={}", fps),
-                regex, "-y"]).current_dir(frames_path).output());
+    pub fn split_video(&self, video_path: &Path, frames_path: &Path, regex: &str, fps: f64, compression_factor: &Option<u64>) -> Result<Vec<PathBuf>, VideoError> {
+        let response = if compression_factor.is_some() {
+            try!(Command::new(self.ffmpeg())
+                .args(&["-loglevel", "error",
+                    "-i", video_path.to_str().unwrap(),
+                        "-q:v", &compression_factor.clone().unwrap().to_string(),
+                    "-vf",
+                    &format!("fps={}", fps),
+                    regex, "-y"]).current_dir(frames_path).output())
+        }
+        else {
+            try!(Command::new(self.ffmpeg())
+                .args(&["-loglevel", "error",
+                    "-i", video_path.to_str().unwrap(),
+                    "-vf",
+                    &format!("fps={}", fps),
+                    regex, "-y"]).current_dir(frames_path).output())
+        };
 
         if response.stderr.is_empty() {
             let frames: Vec<PathBuf> = file_mgmt::get_files_and_sort(frames_path);

@@ -67,13 +67,6 @@ fn search_json(json: &Json, path: &mut VecDeque<String>, keyword: &str) -> Resul
                             &Json::String(ref str) if str == keyword => {
                                 return Ok((true, Some(i)))
                             }
-                            //This won't be useful for our usecase, but is necessary for a generic json tree builder.
-                            //                        &mut Json::Object(ref mut obj) => {
-                            //                            (found, iter) = search_json(obj, path, keyword);
-                            //                            if found {
-                            //                                return (found, iter)
-                            //                            }
-                            //                        }
                             _ => {}
                         }
                     }
