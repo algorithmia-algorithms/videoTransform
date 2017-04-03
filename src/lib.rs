@@ -56,7 +56,7 @@ fn apply(entry: Entry)-> Result<AlgoOutput, VideoError>{
 //    let client = Algorithmia::client("simA8y8WJtWGW+4h1hB0sLKnvb11");
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 20;
-    let threads = 8;
+    let threads = 5;
     let ffmpeg_working_directory = PathBuf::from("/tmp/ffmpeg");
     let scattered_working_directory = PathBuf::from("/tmp/scattered_frames");
     let processed_working_directory = PathBuf::from("/tmp/processed_frames");
