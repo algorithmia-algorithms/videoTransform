@@ -1,11 +1,11 @@
-use algorithmia::{client, Algorithmia, NoAuth};
+use algorithmia::Algorithmia;
 use ffmpeg::FFMpeg;
 use ffmpeg;
 use std::path::*;
 use file_mgmt;
-use rustc_serialize::json::Json;
 use rayon::prelude::*;
 use rayon;
+use serde_json::Value;
 use video_error::VideoError;
 use structs::extract;
 use structs::alter;
@@ -76,7 +76,7 @@ pub fn gather(ffmpeg: &FFMpeg,
 // alter branch, used by VideoTransform
 pub fn alter(client: &Algorithmia,
              algorithm: &str,
-             algo_input: Option<&Json>,
+             algo_input: Option<&Value>,
              data: &Scattered,
              remote_dir: &str,
              local_out_dir: &Path,
@@ -110,14 +110,14 @@ pub fn alter(client: &Algorithmia,
 //extract branch, used by VideoMetadataExtraction
 pub fn extract(client: &Algorithmia,
                algorithm: &str,
-               algo_input: Option<&Json>,
+               algo_input: Option<&Value>,
                data: &Scattered,
                remote_dir: &str,
                local_out_dir: &Path,
                output_regex: &str,
                num_threads: usize,
                duration: f64,
-               batch_size: usize) -> Result<Json, VideoError> {
+               batch_size: usize) -> Result<Value, VideoError> {
     let config = rayon::Configuration::new().set_num_threads(num_threads);
     try!(rayon::initialize(config));
     match algo_input {

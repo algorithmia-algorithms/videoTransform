@@ -1,4 +1,4 @@
-use algorithmia::{client, Algorithmia};
+use algorithmia::Algorithmia;
 use algorithmia::algo::*;
 use algorithmia::data::*;
 use std::process::Command;

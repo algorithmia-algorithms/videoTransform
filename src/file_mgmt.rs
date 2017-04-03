@@ -1,13 +1,15 @@
 use algorithmia::{Algorithmia};
+use std::prelude::*;
 use std;
 use std::path::*;
 use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata};
 use std::io::{Read, Write};
 use hyper::Client;
+use serde_json::value::*;
+use serde_json::to_string;
 use hyper::header::Connection;
 use regex::Regex;
 use video_error::VideoError;
-use rustc_serialize::json::{Json};
 use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;
@@ -67,8 +69,8 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
         let mut attempts = 0;
         let mut output;
         loop {
-            let mut file = try!(File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) }));
-            let response = client.file(url_dir).put(&mut file).map_err(|err| { format!("upload failure for:{}\n{}\n{}\n{}", url_dir, err.description(), err, err.cause().map(|e| e.to_string()).unwrap_or("No cause".to_string())) });
+            let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err)})?;
+            let response: Result< (), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into()});
             if response.is_ok() {
                 output = response.unwrap();
                 break;
@@ -111,10 +113,10 @@ pub fn get_files_and_sort(frames_path: &Path) -> Vec<PathBuf> {
     files
 }
 
-pub fn json_to_file(json: &Json, json_path: &Path) -> Result<PathBuf, VideoError> {
-    let mut local_file: File = try!(File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)}));
+pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {
+    let mut local_file: File = File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)})?;
     let mut writer = std::io::BufWriter::new(local_file);
-    try!(writer.write_all(json.to_string().as_bytes()));
+    try!(writer.write_all(to_string(json)?.as_bytes()));
     Ok(PathBuf::from(json_path))
 
 }

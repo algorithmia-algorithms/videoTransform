@@ -1,12 +1,12 @@
-use algorithmia::{client, Algorithmia, NoAuth};
+use algorithmia::Algorithmia;
 use ffmpeg::FFMpeg;
 use ffmpeg;
 use std::path::*;
 use file_mgmt;
 use alter_handling;
-use rustc_serialize::json::Json;
 use rayon::prelude::*;
 use rayon;
+use serde_json::Value;
 use video_error::VideoError;
 use structs::extract;
 use structs::alter;
@@ -70,7 +70,7 @@ pub fn advanced_alter(client: &Algorithmia,
                       output_regex: &str,
                       algorithm: &str,
                       batch_size: usize,
-                      input: &Json) -> Result<Altered, VideoError>
+                      input: &Value) -> Result<Altered, VideoError>
 {
     let search: Arc<utilities::SearchResult> = Arc::new(try!(utilities::alter_format_search(input)));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();

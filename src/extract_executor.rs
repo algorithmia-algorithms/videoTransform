@@ -1,11 +1,11 @@
-use algorithmia::{client, Algorithmia, NoAuth};
+use algorithmia::Algorithmia;
 use ffmpeg::FFMpeg;
 use ffmpeg;
 use std::path::*;
 use file_mgmt;
 use alter_handling;
-use rustc_serialize::json::Json;
 use rayon::prelude::*;
+use serde_json::Value;
 use video_error::VideoError;
 use structs::extract;
 use structs::alter;
@@ -25,12 +25,12 @@ pub fn default_template_extract(client: &Algorithmia,
                             remote_dir: &str,
                             batch_size: usize,
                             duration: f64,
-                            function: &(Fn(&extract::Extract, Vec<usize>) -> Result<Vec<Json>, VideoError> + Sync)) -> Result<Json, VideoError>
+                            function: &(Fn(&extract::Extract, Vec<usize>) -> Result<Vec<Value>, VideoError> + Sync)) -> Result<Value, VideoError>
 {
     //generate batches of frames by number, based on the batch size.
     let frame_stamp: f64 = duration / data.num_frames() as f64;
     let frame_batches: Box<Vec<Vec<usize>>> = Box::new(frame_batches(batch_size, data.num_frames()));
-    let mut result: Vec<Result<Vec<Json>, VideoError>> = Vec::new();
+    let mut result: Vec<Result<Vec<Value>, VideoError>> = Vec::new();
     //mutex lock that allows us to end early.
     let formatted_data = Arc::new(extract::Extract::new(client.clone(),
                                                data.regex().to_owned(),
@@ -52,11 +52,11 @@ pub fn default_template_extract(client: &Algorithmia,
             }
         }
     }).weight_max().collect_into(&mut result);
-    let processed_frames: Vec<Json> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
+    let processed_frames: Vec<Value> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())
     };
-    let processed: Json = try!(combine_extracted_data(&processed_frames, frame_stamp));
+    let processed: Value = combine_extracted_data(&processed_frames, frame_stamp)?;
 
     Ok(processed)
 }
@@ -67,11 +67,11 @@ pub fn advanced_extract(client: &Algorithmia,
                     algorithm: &str,
                     batch_size: usize,
                     duration: f64,
-                    input: &Json) -> Result<Json, VideoError>
+                    input: &Value) -> Result<Value, VideoError>
 {
     let frame_stamp: f64 = duration / data.num_frames() as f64;
     let search: Arc<SearchResult> = Arc::new(try!(extract_format_search(input)));
-    let mut result: Vec<Result<Vec<Json>, VideoError>> = Vec::new();
+    let mut result: Vec<Result<Vec<Value>, VideoError>> = Vec::new();
     //mutex lock that allows us to end early.
     let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let frame_batches = if search.option() == "batch" {frame_batches(batch_size, data.num_frames())}
@@ -111,10 +111,10 @@ pub fn advanced_extract(client: &Algorithmia,
         }
     }).weight_max().collect_into(&mut result);
     try!(io::stderr().write(b"exited parallel map.\n"));
-    let processed_frames: Vec<Json> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
+    let processed_frames: Vec<Value> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())
     };
-    let processed:Json = try!(combine_extracted_data(&processed_frames, frame_stamp));
+    let processed: Value = combine_extracted_data(&processed_frames, frame_stamp)?;
     Ok(processed)
 }
