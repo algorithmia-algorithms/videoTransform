@@ -4,12 +4,12 @@ use algorithmia::error::ApiError;
 use std::path::*;
 use serde_json::Value;
 use std::collections::BTreeMap;
-use file_mgmt;
+use common::file_mgmt;
 use std::error::Error;
-use video_error::VideoError;
+use common::video_error::VideoError;
 use std::ffi::OsStr;
-use structs::extract;
-use utilities::*;
+use common::structs::extract;
+use common::utilities::*;
 use std::ops::Index;
 use either::{Left, Right};
 

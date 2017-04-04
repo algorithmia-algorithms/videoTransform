@@ -9,7 +9,7 @@ use serde_json::value::*;
 use serde_json::to_string;
 use hyper::header::Connection;
 use regex::Regex;
-use video_error::VideoError;
+use common::video_error::VideoError;
 use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;

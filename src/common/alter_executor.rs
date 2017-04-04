@@ -1,24 +1,24 @@
 use algorithmia::Algorithmia;
-use ffmpeg::FFMpeg;
-use ffmpeg;
+use common::ffmpeg::FFMpeg;
+use common::ffmpeg;
 use std::path::*;
-use file_mgmt;
-use alter_handling;
+use common::file_mgmt;
+use common::alter_handling;
 use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
-use video_error::VideoError;
-use structs::extract;
-use structs::alter;
-use structs::alter::Altered;
-use structs::scattered::Scattered;
-use structs::gathered::Gathered;
+use common::video_error::VideoError;
+use common::structs::extract;
+use common::structs::alter;
+use common::structs::alter::Altered;
+use common::structs::scattered::Scattered;
+use common::structs::gathered::Gathered;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
 static FPSMAX: f64 = 60f64;
-use utilities;
+use common::utilities;
  //used to template all of the default image proc algorithms, uses rayon for multi-threading and uses Arc<Mutex> locking to fail early if an exception is found.
 pub fn default_template_alter(client: &Algorithmia,
                           data: &Scattered,

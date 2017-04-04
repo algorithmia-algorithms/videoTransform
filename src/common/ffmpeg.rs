@@ -2,9 +2,9 @@ use algorithmia::Algorithmia;
 use algorithmia::algo::*;
 use algorithmia::data::*;
 use std::process::Command;
-use video_error::VideoError;
+use common::video_error::VideoError;
 use std::path::*;
-use file_mgmt;
+use common::file_mgmt;
 use std::f64;
 use std::ops::*;
 
@@ -110,13 +110,24 @@ impl FFMpeg {
         }
     }
 
-    pub fn cat_video(&self, output_file: &Path, directory: &Path, regex: &str, fps: f64) -> Result<PathBuf, VideoError> {
+    pub fn cat_video(&self, output_file: &Path, directory: &Path, regex: &str, fps: f64, crf: Option<u64>) -> Result<PathBuf, VideoError> {
         let complete_regex = format!("{}/{}", directory.display(), regex);
-        let response = try!(Command::new(self.ffmpeg())
-            .args(&["-loglevel", "error",
-                "-framerate", &fps.to_string(),
-                "-i", &complete_regex,
-                output_file.to_str().unwrap(), "-y"]).output());
+        let response = if crf.is_some() {
+            Command::new(self.ffmpeg())
+                .args(&["-loglevel", "error",
+                    "-framerate", &fps.to_string(),
+                    "-c:v", "libx264",
+                    "-preset", "veryfast",
+                    "-crf", &crf.unwrap().to_string(),
+                    "-i", &complete_regex,
+                    output_file.to_str().unwrap(), "-y"]).output()?
+        } else {
+            Command::new(self.ffmpeg())
+                .args(&["-loglevel", "error",
+                    "-framerate", &fps.to_string(),
+                    "-i", &complete_regex,
+                    output_file.to_str().unwrap(), "-y"]).output()?
+        };
 
         if response.stderr.is_empty() {
             Ok(PathBuf::from(output_file))

@@ -1,26 +1,26 @@
 use algorithmia::Algorithmia;
-use ffmpeg::FFMpeg;
-use ffmpeg;
+use common::ffmpeg::FFMpeg;
+use common::ffmpeg;
 use std::path::*;
-use file_mgmt;
+use common::file_mgmt;
 use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
-use video_error::VideoError;
-use structs::extract;
-use structs::alter;
-use structs::alter::Altered;
-use structs::scattered::Scattered;
-use structs::gathered::Gathered;
+use common::video_error::VideoError;
+use common::structs::extract;
+use common::structs::alter;
+use common::structs::alter::Altered;
+use common::structs::scattered::Scattered;
+use common::structs::gathered::Gathered;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
-use alter_handling;
-use extract_handling;
-use alter_executor::{advanced_alter, default_template_alter};
-use extract_executor::{advanced_extract, default_template_extract};
+use common::alter_handling;
+use common::extract_handling;
+use common::alter_executor::{advanced_alter, default_template_alter};
+use common::extract_executor::{advanced_extract, default_template_extract};
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
-use utilities;
+use common::utilities;
 use uuid::Uuid;
 
 static MAX_FPS: f64 = 60f64;
@@ -32,7 +32,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
                frame_dir: &Path,
                regex: &str,
                fps: Option<f64>,
-                compression_factor: Option<u64>) -> Result<Scattered, VideoError> {
+               compression_factor: Option<u64>) -> Result<Scattered, VideoError> {
     file_mgmt::create_directory(frame_dir);
     println!("scattering video into frames and audio");
     let origin_fps = try!(ffmpeg.get_video_fps(video_file));
@@ -62,14 +62,15 @@ pub fn scatter(ffmpeg: &FFMpeg,
 pub fn gather(ffmpeg: &FFMpeg,
               output_file: &Path,
               data: alter::Altered,
-              original_file: &Path) -> Result<Gathered, VideoError> {
+              original_file: &Path,
+              crf: Option<u64>) -> Result<Gathered, VideoError> {
     println!("gathering frames and audio into video.");
     let filename = Uuid::new_v4();
     let extension = try!(output_file.extension().ok_or(format!("failed to find a file extension for output file."))).to_str().unwrap();
     let catted_video_no_audio = PathBuf::from(format!("/tmp/{}-{}.{}", "streamless", filename, extension));
     let catted_video_with_audio = PathBuf::from(format!("/tmp/{}-{}.{}", "with_streams", filename, extension));
-    try!(ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps()));
-    let video_with_streams = try!(ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file));
+    ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps(), crf)?;
+    let video_with_streams = ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file)?;
     Ok(Gathered::new(video_with_streams, data.fps()))
 }
 
@@ -113,8 +114,6 @@ pub fn extract(client: &Algorithmia,
                algo_input: Option<&Value>,
                data: &Scattered,
                remote_dir: &str,
-               local_out_dir: &Path,
-               output_regex: &str,
                num_threads: usize,
                duration: f64,
                batch_size: usize) -> Result<Value, VideoError> {
