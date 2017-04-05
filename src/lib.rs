@@ -47,10 +47,10 @@ struct Exit{
 algo_entrypoint!(Entry);
 
 fn apply(entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
-    //    let data_api_work_directory = "data://.session";
-    let data_api_work_directory = "data://.my/ProcessVideo";
-    //    let client = Algorithmia::default();
-    let client = Algorithmia::client("simA8y8WJtWGW+4h1hB0sLKnvb11");
+        let data_api_work_directory = "data://.session";
+    // let data_api_work_directory = "data://.my/ProcessVideo";
+        let client = Algorithmia::default();
+    // let client = Algorithmia::client("simA8y8WJtWGW+4h1hB0sLKnvb11");
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
     let batch_size = 10;
     let threads = 5;
