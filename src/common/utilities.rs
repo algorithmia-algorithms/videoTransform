@@ -257,10 +257,10 @@ pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
     Ok(())
 }
 
-pub fn batch_get_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
+pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_locations: &Vec<String>, client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
 {
     let mut output: Vec<PathBuf> = Vec::new();
-    for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
+    for (local_file, remote_file) in local_file_save_locations.iter().zip(remote_file_get_locations.iter()) {
         output.push(try!(get_file(&remote_file, &local_file, client)));
     }
     Ok(output)
@@ -276,7 +276,7 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Re
                 final_result = result;
                 break;
             },
-            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO => {
+            Err(_) if attempts < MAX_ATTEMPTS_ALGO => {
                 println!("failed.");
                 thread::sleep(Duration::from_millis((1000*attempts) as u64));
                 attempts += 1;

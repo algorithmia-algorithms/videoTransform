@@ -116,10 +116,10 @@ impl FFMpeg {
             Command::new(self.ffmpeg())
                 .args(&["-loglevel", "error",
                     "-framerate", &fps.to_string(),
+                    "-i", &complete_regex,
                     "-c:v", "libx264",
                     "-preset", "veryfast",
                     "-crf", &crf.unwrap().to_string(),
-                    "-i", &complete_regex,
                     output_file.to_str().unwrap(), "-y"]).output()?
         } else {
             Command::new(self.ffmpeg())

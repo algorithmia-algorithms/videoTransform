@@ -60,6 +60,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
 
 //combines video frames in directory frames_dir with audio_file to create a video file.
 pub fn gather(ffmpeg: &FFMpeg,
+                video_working_directory: &Path,
               output_file: &Path,
               data: alter::Altered,
               original_file: &Path,
@@ -67,8 +68,8 @@ pub fn gather(ffmpeg: &FFMpeg,
     println!("gathering frames and audio into video.");
     let filename = Uuid::new_v4();
     let extension = try!(output_file.extension().ok_or(format!("failed to find a file extension for output file."))).to_str().unwrap();
-    let catted_video_no_audio = PathBuf::from(format!("/tmp/{}-{}.{}", "streamless", filename, extension));
-    let catted_video_with_audio = PathBuf::from(format!("/tmp/{}-{}.{}", "with_streams", filename, extension));
+    let catted_video_no_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "streamless", filename, extension));
+    let catted_video_with_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "with_streams", filename, extension));
     ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps(), crf)?;
     let video_with_streams = ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file)?;
     Ok(Gathered::new(video_with_streams, data.fps()))
