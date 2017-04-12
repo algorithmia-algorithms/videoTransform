@@ -61,7 +61,6 @@ pub fn advanced_single(input: &extract::Extract, batch: Vec<usize>, algorithm: S
     batch_upload_file(&local_frames, &remote_frames, input.client())?;
     for _ in 0..remote_frames.len() {
         let json: Value = prepare_json_extract(algo_input, Right(remote_frames.iter().next().unwrap()))?;
-        println!("formatted json: \n {:?}", &json);
         let response: AlgoResponse = try_algorithm(input.client(), &algorithm, &json)?;
         let output_json: Value = response.into_json()
             .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;

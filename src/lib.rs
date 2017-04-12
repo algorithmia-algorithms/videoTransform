@@ -44,7 +44,6 @@ struct Exit{
 }
 
 
-
 struct Algo;
 // this version doesn't auto-create Algo, so you can create it yourself
 algo_entrypoint!(Entry => Algo::helper);
@@ -157,6 +156,7 @@ mod test {
     use super::Algo;
     use super::algorithmia::prelude::*;
     use std::borrow::Cow;
+
     #[test]
     fn basic_test() {
         let raw = json!({
@@ -180,24 +180,26 @@ mod test {
     fn advanced_batch_test() {
         let advanced_input = json!({
     "images": "$BATCH_INPUT",
-    "savePaths": "$BATCH_OUTPUT",
-    "filterName": "neo_instinct"
+    "output_loc": "$BATCH_OUTPUT",
+    "fill_color": "blur"
     });
         let raw = json!({
     "input_file" : "data://zeryx/Video/K5qACexzwOI.mp4",
-    "output_file" : "data://quality/Videos/K5qACexzwOI_salnetted.mp4",
-    "algorithm" : "algo://deeplearning/deepfilter",
-    "fps" : 20,
-    "video_compression" : 25,
+    "output_file" : "data://quality/Videos/silicon_valley_censored.mp4",
+    "algorithm" : "algo://cv/CensorFace",
+    "fps" : 14,
+//    "video_compression" : 25,
+//    "image_compression" : 25,
     "advanced_input" : advanced_input
     });
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
-        println!(result);
-        if let AlgoOutput::Binary(_) = result.unwrap() {
-            panic!("apply return binary data")
+        match result {
+            Ok(_)=> {println!("completed success");}
+            Err(ref err) => {println!("errored: {}", err);}
         }
     }
+
     #[test]
     fn advanced_single_test() {
         let advanced_input = json!({

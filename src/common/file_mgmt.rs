@@ -19,8 +19,6 @@ static MAX_ATTEMPTS_DATA: usize = 5;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
-    println!("{:?}", local_path.display());
-    println!("{}", url.to_string());
     let local_dir = local_path.parent().unwrap();
     create_directory(local_dir);
     let tmp_url = url.clone();
@@ -62,7 +60,6 @@ fn get_file_from_html(url: String, local_path: &Path) -> Result<PathBuf, VideoEr
 }
 
 fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
-    println!("getting from algorithmia");
     let file = client.file(&url);
     let mut remote_file: FileData =file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
     let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
