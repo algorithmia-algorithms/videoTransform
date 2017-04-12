@@ -10,7 +10,7 @@ path = "bin/pipe.rs"
 name = "algorithm"
 
 [dependencies]
-algorithmia = "2.0.2"
+algorithmia = "2.0.3"
 base64 = "0.3.0"
 serde = "0.9.0"
 serde_derive = "0.9.0"
@@ -18,7 +18,9 @@ serde_json = "0.9.0"
 hyper = "0.10.5"
 regex = "0.1.77"
 lazy_static = "0.2.6"
+env_logger = "0.4.2"
+std-semaphore = {git = "https://github.com/zeryx/std-semaphore.git", rev= "a9614c47108cdf6ad09a6a096a0a606be4bc6bc8"}
 quick-error = "1.1.0"
-rayon = "0.4.3"
+rayon = "0.6.0"
 uuid = { version = "0.2.3", features = ["v4"]}
 either ="1.0.1"

@@ -1,23 +1,20 @@
 use algorithmia::Algorithmia;
-use common::ffmpeg::FFMpeg;
 use common::ffmpeg;
 use std::path::*;
 use common::file_mgmt;
 use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
+use common::ffmpeg::FFMpeg;
 use common::video_error::VideoError;
-use common::structs::extract;
-use common::structs::alter;
 use common::structs::alter::Altered;
 use common::structs::scattered::Scattered;
 use common::structs::gathered::Gathered;
+use common::structs::extract::Extract;
+use common::extract;
+use common::alter;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
-use common::alter_handling;
-use common::extract_handling;
-use common::alter_executor::{advanced_alter, default_template_alter};
-use common::extract_executor::{advanced_extract, default_template_extract};
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
 use common::utilities;
@@ -35,7 +32,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
                compression_factor: Option<u64>) -> Result<Scattered, VideoError> {
     file_mgmt::create_directory(frame_dir);
     println!("scattering video into frames and audio");
-    let origin_fps = try!(ffmpeg.get_video_fps(video_file));
+    let origin_fps = ffmpeg.get_video_fps(video_file)?;
     let output_fps = match fps {
         Some(fps) => {fps},
         None => {
@@ -50,7 +47,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
     let duration:f64 = try!(ffmpeg.get_video_duration(video_file));
     let num_frames: u64 = (duration*output_fps).ceil() as u64;
     if num_frames <= MAX_FRAMES {
-        let result = try!(ffmpeg.split_video(video_file, frame_dir, &regex, output_fps, &compression_factor));
+        let result = ffmpeg.split_video(video_file, frame_dir, &regex, output_fps, &compression_factor)?;
         Ok(Scattered::new(PathBuf::from(frame_dir), result.len(), PathBuf::from(video_file), output_fps, regex.to_string()))
     }
         else {
@@ -62,12 +59,12 @@ pub fn scatter(ffmpeg: &FFMpeg,
 pub fn gather(ffmpeg: &FFMpeg,
                 video_working_directory: &Path,
               output_file: &Path,
-              data: alter::Altered,
+              data: Altered,
               original_file: &Path,
               crf: Option<u64>) -> Result<Gathered, VideoError> {
     println!("gathering frames and audio into video.");
     let filename = Uuid::new_v4();
-    let extension = try!(output_file.extension().ok_or(format!("failed to find a file extension for output file."))).to_str().unwrap();
+    let extension = output_file.extension().ok_or(format!("failed to find a file extension for output file."))?.to_str().unwrap();
     let catted_video_no_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "streamless", filename, extension));
     let catted_video_with_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "with_streams", filename, extension));
     ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps(), crf)?;
@@ -83,24 +80,26 @@ pub fn alter(client: &Algorithmia,
              remote_dir: &str,
              local_out_dir: &Path,
              output_regex: &str,
-             num_threads: usize,
-             batch_size: usize) -> Result<alter::Altered, VideoError> {
-    let config = rayon::Configuration::new().set_num_threads(num_threads);
-    try!(rayon::initialize(config));
+             threads: usize,
+             batch_size: usize) -> Result<Altered, VideoError> {
+    let config = rayon::Configuration::new().set_num_threads(threads);
+    let start_threads: isize = threads as isize;
+    println!("starting threads: {}", start_threads);
+    rayon::initialize(config)?;
     //batch size is only used if the algorithm accepts batching and/or the user defined advanced input has a $BATCH_FILE_INPUT & $BATCH_FILE_OUTPUT designated.
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
-            advanced_alter(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, advanced_input)
+            alter::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, start_threads, advanced_input)
         }
         //no custom json input, so we use defaults.
         None => {
             if algorithm.to_ascii_lowercase().as_str().contains("deepfilter") {
-                default_template_alter(client, data, remote_dir, local_out_dir, output_regex, batch_size, &alter_handling::deep_filter)
+                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::deep_filter)
             } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
-                default_template_alter(client, data, remote_dir, local_out_dir, output_regex, batch_size, &alter_handling::salnet)
+                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::salnet)
             } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
-                default_template_alter(client, data, remote_dir, local_out_dir, output_regex, batch_size, &alter_handling::colorful_colorization)
+                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::colorful_colorization)
             } else {
                 println!("failed to pattern match anything.");
                 Err(String::from("No default algorithm definition, advanced_input required.").into())
@@ -115,22 +114,24 @@ pub fn extract(client: &Algorithmia,
                algo_input: Option<&Value>,
                data: &Scattered,
                remote_dir: &str,
-               num_threads: usize,
+               threads: usize,
                duration: f64,
                batch_size: usize) -> Result<Value, VideoError> {
-    let config = rayon::Configuration::new().set_num_threads(num_threads);
-    try!(rayon::initialize(config));
+    let config = rayon::Configuration::new().set_num_threads(threads);
+    let start_threads: isize = threads as isize;
+    println!("starting threads: {}", start_threads);
+    rayon::initialize(config)?;
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
-            advanced_extract(client, data, remote_dir, algorithm, batch_size, duration, advanced_input)
+            extract::executor::advanced(client, data, remote_dir, algorithm, batch_size, duration, start_threads, advanced_input)
         }
         //no custom json input, so we use defaults.
         None => {
             if algorithm.to_ascii_lowercase().as_str().contains("nuditydetection") {
-                default_template_extract(client, data, remote_dir, batch_size, duration, &extract_handling::nudity_detection)
+                extract::executor::default(client, data, remote_dir, batch_size, duration, start_threads, &extract::functions::nudity_detection)
             } else if algorithm.to_ascii_lowercase().as_str().contains("illustrationtagger") {
-                default_template_extract(client, data, remote_dir, batch_size, duration, &extract_handling::illustration_tagger)
+                extract::executor::default(client, data, remote_dir, batch_size, duration, start_threads, &extract::functions::illustration_tagger)
             } else {
                 println!("failed to pattern match anything.");
                 Err(String::from("not implemented.").into())

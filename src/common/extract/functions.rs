@@ -10,6 +10,7 @@ use common::video_error::VideoError;
 use std::ffi::OsStr;
 use common::structs::extract;
 use common::utilities::*;
+use common::json_utils::{SearchResult, prepare_json_extract};
 use std::ops::Index;
 use either::{Left, Right};
 
@@ -52,10 +53,33 @@ pub fn illustration_tagger(input: &extract::Extract, batch: Vec<usize>) -> Resul
     Ok(output)
 }
 
-pub fn advanced_single(input: &extract::Extract, batch: Vec<usize>, algorithm: String, search: &SearchResult) -> Result< Vec<Value>, VideoError> {
-    unimplemented!()
+pub fn advanced_single(input: &extract::Extract, batch: Vec<usize>, algorithm: String, algo_input: &SearchResult) -> Result< Vec<Value>, VideoError> {
+    let mut output: Vec<Value> = Vec::new();
+    let local_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
+        .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
+    let remote_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
+    batch_upload_file(&local_frames, &remote_frames, input.client())?;
+    for _ in 0..remote_frames.len() {
+        let json: Value = prepare_json_extract(algo_input, Right(remote_frames.iter().next().unwrap()))?;
+        println!("formatted json: \n {:?}", &json);
+        let response: AlgoResponse = try_algorithm(input.client(), &algorithm, &json)?;
+        let output_json: Value = response.into_json()
+            .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
+        output.push(output_json);
+    }
+    Ok(output)
 }
 
-pub fn advanced_batch(input: &extract::Extract, batch: Vec<usize>, algorithm: String, search: &SearchResult) -> Result< Vec<Value>, VideoError> {
-    unimplemented!()
+pub fn advanced_batch(input: &extract::Extract, batch: Vec<usize>, algorithm: String, algo_input: &SearchResult) -> Result< Vec<Value>, VideoError> {
+    let local_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
+        .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
+    let remote_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
+
+    batch_upload_file(&local_frames, &remote_frames, input.client())?;
+    let json: Value = prepare_json_extract(algo_input, Left(&remote_frames))?;
+    let response: AlgoResponse = try_algorithm(input.client(), &algorithm, &json)?;
+    let output_json: Value = response.into_json()
+        .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
+    let output: Vec<Value> = output_json.as_array().unwrap().iter().map(|dat| {dat.clone()}).collect::<Vec<_>>();
+    Ok(output)
 }

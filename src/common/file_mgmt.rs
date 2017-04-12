@@ -1,7 +1,9 @@
 use algorithmia::{Algorithmia};
+use algorithmia::data::FileData;
 use std::prelude::*;
 use std;
 use std::path::*;
+use std::time;
 use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata};
 use std::io::{Read, Write};
 use hyper::Client;
@@ -13,11 +15,12 @@ use common::video_error::VideoError;
 use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;
-static MAX_ATTEMPTS_DATA: usize = 15usize;
+static MAX_ATTEMPTS_DATA: usize = 5;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
     println!("{:?}", local_path.display());
+    println!("{}", url.to_string());
     let local_dir = local_path.parent().unwrap();
     create_directory(local_dir);
     let tmp_url = url.clone();
@@ -40,6 +43,7 @@ pub fn get_file(url: &str, local_path: &Path, client: &Algorithmia) -> Result<Pa
             }
                 else {
                     thread::sleep(Duration::from_millis((1000*attempts) as u64));
+                    println!("failed {} times to download file\n{}", attempts, url.to_string());
                     attempts += 1;
                 }
     }
@@ -58,9 +62,12 @@ fn get_file_from_html(url: String, local_path: &Path) -> Result<PathBuf, VideoEr
 }
 
 fn get_file_from_algorithmia(url: String, local_path: &Path, client: &Algorithmia) -> Result<PathBuf, VideoError> {
-    let mut remote_file = try!(client.file(&url).get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err)));
-    let mut local_file = try!(File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err)));
-    try!(std::io::copy(&mut remote_file, &mut local_file).map_err(|err| format ! ("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err)));
+    println!("getting from algorithmia");
+    let file = client.file(&url);
+    let mut remote_file: FileData =file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
+    let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
+    thread::sleep(Duration::from_secs(2));
+    std::io::copy(&mut remote_file, &mut local_file).map_err(|err| format ! ("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err))?;
     Ok(PathBuf::from(local_path))
 }
 
@@ -90,7 +97,6 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
 
 pub fn create_directory(directory: &Path) -> () {
     create_dir_all(directory);
-    ()
 }
 
 pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
@@ -98,10 +104,10 @@ pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
     Ok(meta.len() / 1000000u64)
 }
 
-pub fn clean_up(original_dir: Option<&Path>, process_dir: Option<&Path>) -> () {
+pub fn clean_up(original_dir: Option<&Path>, process_dir: Option<&Path>, video_dir: &Path) -> () {
     original_dir.map(|dir| { remove_dir_all(dir)});
     process_dir.map(|dir| { remove_dir_all(dir)});
-    ()
+    remove_dir_all(video_dir);
 }
 
 
@@ -111,14 +117,6 @@ pub fn get_files_and_sort(frames_path: &Path) -> Vec<PathBuf> {
         entry.ok().map(|e| e.path())}).collect();
     files.sort();
     files
-}
-
-pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {
-    let mut local_file: File = File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)})?;
-    let mut writer = std::io::BufWriter::new(local_file);
-    try!(writer.write_all(to_string(json)?.as_bytes()));
-    Ok(PathBuf::from(json_path))
-
 }
 
 //used with Process to create file names from a regex filename containing a %07d & iteration number.

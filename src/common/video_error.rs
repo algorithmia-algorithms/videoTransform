@@ -2,6 +2,7 @@ use algorithmia;
 use std;
 use rayon;
 use serde_json;
+use std::sync::PoisonError;
 quick_error!{
     #[derive(Debug)]
     /// Document your pub enums
@@ -48,4 +49,10 @@ quick_error!{
         }
     }
 }
+//
+//impl fmt::Display for VideoError{
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//        write!(f, "{}", self.0)
+//    }
+//}
 

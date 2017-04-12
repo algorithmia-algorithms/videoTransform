@@ -14,11 +14,14 @@ pub struct FFMpeg{
 }
 
 pub fn new(ffmpeg_remote: &str, ffmpeg_directory: &Path, client: &Algorithmia) -> Result<FFMpeg, VideoError> {
-    let ffmpeg_file = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "ffmpeg.tar.gz"));
-    let tar_file = try!(file_mgmt::get_file(ffmpeg_remote, &ffmpeg_file, client));
-    println!("got file.");
-    let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
-    println!("unzipped file.");
+    let ffmpeg_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "ffmpeg.tar.gz"));
+    let checker_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"));
+    if !checker_file.exists() {
+        let tar_file = try!(file_mgmt::get_file(ffmpeg_remote, &ffmpeg_file, client));
+        println!("got file.");
+        let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
+        println!("unzipped file.");
+    }
     Ok(
         FFMpeg{ffprobe_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffprobe")),
             ffmpeg_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"))}
