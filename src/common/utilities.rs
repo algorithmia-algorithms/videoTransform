@@ -1,15 +1,17 @@
 use algorithmia::prelude::*;
 use algorithmia::error::ApiError;
 use algorithmia::algo::*;
-use serde_json::Value;
+use serde_json::{Value, to_string};
 use regex::Regex;
 use common::file_mgmt::*;
 use std::path::*;
 use common::video_error::VideoError;
+use std::fs::File;
 use std::time;
 use std::time::Duration;
 use std::ops::Index;
 use std::thread;
+use std::io::{BufWriter, Write};
 use std::ops::IndexMut;
 static MAX_ATTEMPTS_ALGO: usize = 3usize;
 
@@ -58,7 +60,6 @@ pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_
 }
 
 //fail fast if the exception contains '429'
-//TODO: replace this with a better way of discovering the too many child processes exception
 pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Result<AlgoResponse, VideoError> {
     let mut attempts = 0;
     let mut final_result;
@@ -80,4 +81,13 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Re
         }
     }
     Ok(final_result)
+}
+
+
+pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {
+    let mut local_file = File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)})?;
+    let mut writer = BufWriter::new(local_file);
+    try!(writer.write_all(to_string(json)?.as_bytes()));
+    Ok(PathBuf::from(json_path))
+
 }

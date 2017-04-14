@@ -51,8 +51,10 @@ algo_entrypoint!(Entry => Algo::helper);
 impl Algo {
     fn helper(&self, entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
         let batch_size = 10;
-        let starting_threads = 14;
-        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads, &entry.output_file, &entry.input_file, entry.image_compression.clone().is_some())?;
+        let starting_threads = 20;
+        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads,
+                                          &entry.output_file, &entry.input_file,
+                                          entry.image_compression.clone().is_some())?;
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         let video_compression: Option<u64> = entry.video_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);

@@ -37,11 +37,11 @@ pub fn deep_filter(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semap
     "savePaths": remote_post_frames.iter().map(|frame| {Value::String(frame.clone())}).collect::<Vec<Value>>(),
     "filterName" : "gan_vogh"
     });
-    println!("acquiring semaphore");
+//    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
     semaphore.release();
-    println!("releasing semaphore");
+//    println!("releasing semaphore");
     let downloaded = batch_get_file( &local_post_frames, &remote_post_frames, input.client())?;
     Ok(downloaded)
 }
@@ -64,11 +64,11 @@ pub fn salnet(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semaphore>
                              "image": remote_pre_frames.index(i).clone(),
                              "location": remote_post_frames.index(i).clone()
                          });
-        println!("acquiring semaphore");
+//        println!("acquiring semaphore");
         semaphore.acquire();
         try_algorithm(input.client(), &algorithm, &json)?;
         semaphore.release();
-        println!("releasing semaphore");
+//        println!("releasing semaphore");
     }
     let downloaded = batch_get_file( &local_post_frames, &remote_post_frames, input.client())?;
     Ok(downloaded)
@@ -91,11 +91,11 @@ pub fn colorful_colorization(input: &alter::Alter, batch: Vec<usize>, semaphore:
         "image": remote_pre_frames.iter().map(|frame| {Value::String(frame.clone())}).collect::<Vec<Value>>(),
         "location": remote_post_frames.iter().map(|frame| {Value::String(frame.clone())}).collect::<Vec<Value>>()
     });
-    println!("acquiring semaphore");
+//    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
     semaphore.release();
-    println!("releasing semaphore");
+//    println!("releasing semaphore");
     let downloaded = batch_get_file(&local_post_frames, &remote_post_frames, input.client())?;
     Ok(downloaded)
 }
@@ -112,11 +112,11 @@ pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
 
     let json: Value = prepare_json_alter(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames))?;
-    println!("acquiring semaphore");
+//    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
     semaphore.release();
-    println!("releasing semaphore");
+//    println!("releasing semaphore");
 
     let downloaded = batch_get_file( &local_post_frames, &remote_post_frames, input.client())?;
     Ok(downloaded)
@@ -134,11 +134,11 @@ pub fn advanced_single(input: &alter::Alter, batch: Vec<usize>, algorithm: Strin
 
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
     let json: Value = prepare_json_alter(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap()))?;
-    println!("acquiring semaphore");
+//    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
     semaphore.release();
-    println!("releasing semaphore");
+//    println!("releasing semaphore");
     let downloaded = batch_get_file( &local_post_frames, &remote_post_frames, input.client())?;
     Ok(downloaded)
 }
