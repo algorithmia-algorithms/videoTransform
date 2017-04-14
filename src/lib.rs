@@ -44,7 +44,7 @@ struct Exit{
 }
 
 
-struct Algo;
+pub struct Algo;
 // this version doesn't auto-create Algo, so you can create it yourself
 algo_entrypoint!(Entry => Algo::helper);
 
