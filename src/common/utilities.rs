@@ -68,7 +68,7 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Re
                 final_result = result;
                 break;
             },
-            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("429") => {
+            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
                 println!("failed.");
                 thread::sleep(Duration::from_millis((1000*attempts) as u64));
                 attempts += 1;

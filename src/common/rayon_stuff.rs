@@ -1,6 +1,7 @@
 use rayon::prelude::*;
 use rayon;
-use std::{thread, time};
+use std::{thread};
+use std::time::{Duration, SystemTime};
 use std::ops::*;
 use std::io::{self, Write};
 use std_semaphore;
@@ -11,24 +12,30 @@ use common::json_utils::SearchResult;
 static DURATION:u64 = 5;
 use std::thread::sleep;
 
-pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>) -> Result<Vec<J>, VideoError> + Sync),
-                                data: &T, batch: &Vec<usize>, locked_threads: Arc<RwLock<isize>>, starting_threads: isize,
-                                semaphore: Arc<RwLock<std_semaphore::Semaphore>>, error: Arc<Mutex<Option<String>>>) -> Result<Vec<J>, VideoError> {
+pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<std_semaphore::Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
+                                   data: &T, batch: &Vec<usize>, semaphore: Arc<std_semaphore::Semaphore>,
+                                   error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
     if let Some(ref err) = *(error.lock().unwrap()) {
         return Err(err.to_string().into())
     }
-    (*semaphore).read().unwrap().acquire();
-    match function(&data, batch.clone()) {
-        Ok(result) => Ok(result),
+    match function(&data, batch.clone(), semaphore.clone()) {
+        Ok(result) => {
+            Ok(result)
+        },
         Err(err) => {
-            if err.to_string().contains("429") {
-                println!("caught exception 429, slowing down...");
-                let cur: isize = (*locked_threads).read().unwrap().clone();
-                *(*locked_threads).write().unwrap() = if cur > 1 { cur - 1 } else { 1 };
-                (*semaphore).write().unwrap().update(starting_threads - *(*locked_threads).read().unwrap());
-                (*semaphore).read().unwrap().release();
-                sleep(time::Duration::from_secs(DURATION));
-                try_algorithm_default(function, data, batch, locked_threads, starting_threads, semaphore, error)
+            if err.to_string().contains("algorithm hit max number of active calls per session") {
+                let curr_time: SystemTime = SystemTime::now();
+                let prev_time: SystemTime = {*time.lock().unwrap()};
+                let time_diff: Duration = curr_time.duration_since(prev_time)?;
+                if time_diff.as_secs() > 5 {
+                    println!("slowing down...");
+                    *time.lock().unwrap() = SystemTime::now();
+                    try_algorithm_default(function, data, batch, semaphore, error, time)
+                } else {
+                    println!("not slowing down...");
+                    semaphore.release();
+                    try_algorithm_default(function, data, batch, semaphore, error, time)
+                }
             } else {
                 let mut terminate = error.lock().unwrap();
                 let terminate_msg: String = format!("algorithm thread failed, ending early: \n{}", err);
@@ -39,30 +46,32 @@ pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>) -> Result<Vec<
     }
 }
 
-pub fn try_algorithm_advanced<T, J>(function: &(Fn(&T,Vec<usize>, String, &SearchResult) -> Result<Vec<J>, VideoError> + Sync),
-                                 data: &T, batch: &Vec<usize>, algo: &str,
-                                 json: &SearchResult, locked_threads: Arc<RwLock<isize>>, starting_threads: isize,
-                                 semaphore: Arc<RwLock<std_semaphore::Semaphore>>,
-                                 error: Arc<Mutex<Option<String>>>) -> Result<Vec<J>, VideoError> {
+pub fn try_algorithm_advanced<T, J>(function: &(Fn(&T,Vec<usize>, String, &SearchResult, Arc<std_semaphore::Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
+                                    data: &T, batch: &Vec<usize>, algo: &str,
+                                    json: &SearchResult, semaphore: Arc<std_semaphore::Semaphore>,
+                                    error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
     if let Some(ref err) = *(error.lock().unwrap()) {
         return Err(err.to_string().into())
     }
-    io::stdout().write(b"waiting for semaphore.\n")?;
-    (*semaphore).read().unwrap().acquire();
-    io::stdout().write(b"acquired semaphore\n")?;
-    match function(&data, batch.clone(), algo.to_string(), &json) {
+    match function(&data, batch.clone(), algo.to_string(), &json, semaphore.clone()) {
         Ok(result) => {
-            (*semaphore).read().unwrap().release();
             Ok(result)
         },
         Err(err) => {
-            if err.to_string().contains("429") {
-                let cur: isize = (*locked_threads).read().unwrap().clone();
-                *(*locked_threads).write().unwrap() = if cur > 1 { cur - 1 } else { 1 };
-                (*semaphore).write().unwrap().update(starting_threads - *(*locked_threads).read().unwrap());
-                (*semaphore).read().unwrap().release();
-                thread::sleep(time::Duration::from_secs(DURATION));
-                try_algorithm_advanced(function, data, batch, algo, json, locked_threads, starting_threads, semaphore, error)
+            if err.to_string().contains("algorithm hit max number of active calls per session") {
+                let curr_time: SystemTime = SystemTime::now();
+                let prev_time: SystemTime = *time.lock().unwrap();
+                let time_diff: Duration = curr_time.duration_since(prev_time)?;
+                if time_diff.as_secs() > 5 {
+                    println!("slowing down...");
+                    *time.lock().unwrap() = curr_time;
+                    try_algorithm_advanced(function, data, batch, algo, json, semaphore, error, time)
+                }
+                else {
+                    println!("not slowing down...");
+                    semaphore.release();
+                    try_algorithm_advanced(function, data, batch, algo, json, semaphore, error, time)
+                }
             } else {
                 let mut terminate = error.lock().unwrap();
                 let terminate_msg: String = format!("algorithm thread failed, ending early: \n{}", err);

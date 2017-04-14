@@ -198,7 +198,7 @@ pub fn alter_format_search(json: &Value) -> Result<SearchResult, VideoError> {
                 Ok(SearchResult::new("single".to_string(), single_in_path, single_in_iter, single_out_path, single_out_iter, json.clone()))
             }
                 else if single_in || single_out {
-                    Err(String::from("json parsing error:\nif single selected both $SINGLE_INPUT and $SINGLE)OUTPUT must be defined.").into())
+                    Err(String::from("json parsing error:\nif single selected both $SINGLE_INPUT and $SINGLE_OUTPUT must be defined.").into())
                 }
                     else {
                         Err(String::from("json parsing error:\nadvanced_input did not contain any keywords!").into())

@@ -51,8 +51,8 @@ algo_entrypoint!(Entry => Algo::helper);
 impl Algo {
     fn helper(&self, entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
         let batch_size = 10;
-        let starting_threads = 20;
-        let parameters: PreDefines = prep(RunFormat::TestLocal, batch_size, starting_threads, &entry.output_file, &entry.input_file, entry.image_compression.clone().is_some())?;
+        let starting_threads = 14;
+        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads, &entry.output_file, &entry.input_file, entry.image_compression.clone().is_some())?;
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         let video_compression: Option<u64> = entry.video_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
@@ -80,9 +80,8 @@ impl Default for Algo {
 
 
 enum RunFormat{
-    ProdAlgo,
+    Algo,
     ProdLocal,
-    TestAlgo,
     TestLocal
 }
 
@@ -98,7 +97,7 @@ struct PreDefines{
     scatter_regex: String,
     process_regex: String,
     batch_size: usize,
-    starting_threads: usize
+    starting_threads: usize,
 }
 
 fn prep(format: RunFormat,
@@ -109,7 +108,6 @@ fn prep(format: RunFormat,
         has_image_compression: bool
 ) -> Result<PreDefines, VideoError> {
 
-
     let prod_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
     let test_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
     let test_api = "https://apitest.algorithmia.com";
@@ -117,9 +115,8 @@ fn prep(format: RunFormat,
     let not_session = String::from("data://.my/ProcessVideo");
 
     let (client, data_work_dir) = match format {
-        RunFormat::ProdAlgo => { (Algorithmia::default(), session)}
+        RunFormat::Algo => { (Algorithmia::default(), session)}
         RunFormat::ProdLocal => { (Algorithmia::client(prod_key), not_session)}
-        RunFormat::TestAlgo => {(Algorithmia::client_with_url(test_api, test_key), session)}
         RunFormat::TestLocal => {(Algorithmia::client_with_url(test_api, test_key), not_session)}
     };
     let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
@@ -162,7 +159,7 @@ mod test {
         let raw = json!({
     "input_file" : "data://quality/videos/kenny_test.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
-    "algorithm":"algo://deeplearning/SalNet",
+    "algorithm":"algo://deeplearning/DeepFilter",
     "fps":10,
     "video_compression" : 40,
     "image_compression" : 20
@@ -170,9 +167,9 @@ mod test {
         println!("data: {:?}", &raw);
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
-        assert!(result.is_ok(), "apply return an error");
-        if let AlgoOutput::Binary(_) = result.unwrap() {
-            panic!("apply return binary data")
+        match result {
+            Ok(_)=> {println!("completed success");}
+            Err(ref err) => {println!("errored: {}", err);}
         }
     }
 
@@ -187,7 +184,7 @@ mod test {
     "input_file" : "data://zeryx/Video/K5qACexzwOI.mp4",
     "output_file" : "data://quality/Videos/silicon_valley_censored.mp4",
     "algorithm" : "algo://cv/CensorFace",
-    "fps" : 14,
+    "fps" : 10,
 //    "video_compression" : 25,
 //    "image_compression" : 25,
     "advanced_input" : advanced_input
@@ -204,21 +201,21 @@ mod test {
     fn advanced_single_test() {
         let advanced_input = json!({
     "image": "$SINGLE_INPUT",
-    "location": "$SINGLE_INPUT",
+    "location": "$SINGLE_OUTPUT",
     });
         let raw = json!({
     "input_file" : "data://quality/videos/kenny_test.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm" : "algo://deeplearning/SalNet",
-    "fps" : 20,
+    "fps" : 4,
     "video_compression" : 25,
     "advanced_input" : advanced_input
     });
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
-        assert!(result.is_ok(), "apply return an error");
-        if let AlgoOutput::Binary(_) = result.unwrap() {
-            panic!("apply return binary data")
+        match result {
+            Ok(_)=> {println!("completed success");}
+            Err(ref err) => {println!("errored: {}", err);}
         }
     }
 }

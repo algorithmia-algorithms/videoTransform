@@ -2,7 +2,8 @@ use algorithmia;
 use std;
 use rayon;
 use serde_json;
-use std::sync::PoisonError;
+//use std::sync::PoisonError;
+use std::time;
 quick_error!{
     #[derive(Debug)]
     /// Document your pub enums
@@ -44,6 +45,10 @@ quick_error!{
             cause(err)
         }
         SerdeError(err: serde_json::Error) {
+            from()
+            cause(err)
+        }
+        SystemTimeError(err: time::SystemTimeError) {
             from()
             cause(err)
         }
