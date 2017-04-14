@@ -23,7 +23,7 @@ use either::{Left, Right};
 ///Everything needs to be owned when passed into these processing templates as rust multi-threading can't accept references.
 pub fn deep_filter(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
 {
-    let algorithm = "algo://deeplearning/DeepFilter/0.6.1";
+    let algorithm = "algo://deeplearning/DeepFilter/0.6.0";
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
@@ -49,7 +49,7 @@ pub fn deep_filter(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semap
 //TODO: salnet right now has no batch mode, might change later.
 pub fn salnet(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
 {
-    let algorithm = "algo://deeplearning/SalNet/0.1.6";
+    let algorithm = "algo://deeplearning/SalNet/0.2.0";
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
@@ -77,7 +77,7 @@ pub fn salnet(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semaphore>
 //TODO: colorful_colorization has no batch mode, might change later
 pub fn colorful_colorization(input: &alter::Alter, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
 {
-    let algorithm = "algo://deeplearning/ColorfulImageColorization/1.1.3";
+    let algorithm = "algo://deeplearning/ColorfulImageColorization/1.1.6";
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| { PathBuf::from(str.to_owned()) }).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;

@@ -17,7 +17,7 @@ use std::ops::Index;
 use either::{Left, Right};
 
 pub fn nudity_detection(input: &extract::Extract, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<Value>, VideoError> {
-    let algorithm = "algo://sfw/NudityDetectioni2v/0.2.7";
+    let algorithm = "algo://sfw/NudityDetectioni2v/0.2.8";
     let local_pre_frames: Vec<PathBuf> = try!(batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap()))
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = try!(batch_file_path(&batch, input.input_regex(), input.remote_working()));
