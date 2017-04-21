@@ -121,6 +121,7 @@ impl FFMpeg {
                     "-framerate", &fps.to_string(),
                     "-i", &complete_regex,
                     "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p",
                     "-preset", "veryfast",
                     "-crf", &crf.unwrap().to_string(),
                     output_file.to_str().unwrap(), "-y"]).output()?
@@ -129,6 +130,8 @@ impl FFMpeg {
                 .args(&["-loglevel", "error",
                     "-framerate", &fps.to_string(),
                     "-i", &complete_regex,
+                    "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p",
                     output_file.to_str().unwrap(), "-y"]).output()?
         };
 

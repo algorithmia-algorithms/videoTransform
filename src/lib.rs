@@ -163,8 +163,8 @@ mod test {
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm":"algo://deeplearning/DeepFilter",
     "fps":10,
-    "video_compression" : 40,
-    "image_compression" : 20
+    "video_compression" : 30,
+//    "image_compression" : 20
     });
         println!("data: {:?}", &raw);
         let json = AlgoInput::Json(Cow::Owned(raw));
