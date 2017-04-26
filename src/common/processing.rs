@@ -11,13 +11,13 @@ use common::structs::alter::Altered;
 use common::structs::scattered::Scattered;
 use common::structs::gathered::Gathered;
 use common::structs::extract::Extract;
-use common::extract;
-use common::alter;
+use alter;
+use extract;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
-use common::utilities;
+use common::misc;
 use uuid::Uuid;
 
 static MAX_FPS: f64 = 60f64;
@@ -112,6 +112,7 @@ pub fn alter(client: &Algorithmia,
 pub fn extract(client: &Algorithmia,
                algorithm: &str,
                algo_input: Option<&Value>,
+               algo_output: Option<&Value>,
                data: &Scattered,
                remote_dir: &str,
                threads: usize,

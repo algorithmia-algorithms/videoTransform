@@ -15,7 +15,9 @@ impl Altered {
     pub fn frames_dir(&self) -> &Path {self.frames_dir.as_ref()}
     pub fn regex(&self) -> &str {&self.frame_regex}
     pub fn new(frames_dir: PathBuf, frames: Vec<PathBuf>, fps: f64, regex: String) -> Altered{
-        Altered {frames_dir: frames_dir, fps: fps, frame_regex: regex, frames: frames}
+        Altered {frames_dir: frames_dir,
+            fps: fps, frame_regex: regex,
+            frames: frames}
     }
 }
 

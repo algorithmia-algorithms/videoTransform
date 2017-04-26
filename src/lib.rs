@@ -15,15 +15,15 @@ use serde_json::Value;
 use serde_json::Number;
 use std::path::*;
 use uuid::Uuid;
+mod extract;
+mod alter;
 mod common;
 use common::ffmpeg::FFMpeg;
-use common::utilities;
+use common::misc;
 use common::file_mgmt;
 use common::ffmpeg;
 use common::video_error::VideoError;
 use common::processing;
-use common::alter;
-use common::extract;
 use common::structs::gathered::Gathered;
 use common::structs::scattered::Scattered;
 
@@ -58,7 +58,7 @@ impl Algo {
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         let video_compression: Option<u64> = entry.video_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
-        utilities::early_exit(&parameters.client, &entry.output_file)?;
+        misc::early_exit(&parameters.client, &entry.output_file)?;
         let video = file_mgmt::get_file(&entry.input_file, &parameters.local_input_file, &parameters.client)?;
         let scatter_data: Scattered = processing::scatter(&parameters.ffmpeg, &video, &parameters.scattered_working_directory,
                                                           &parameters.scatter_regex, fps, image_compression)?;

@@ -21,8 +21,7 @@ pub fn early_exit(client: &Algorithmia, output_path: &str) -> Result<(), VideoEr
     //try to upload a 0 size file to the output path, then delete it. if both succeed then the path is valid.
     let r: Result<_, VideoError> = client.file(output_path).put("").map_err(|err| format!("early exit: \n output path {} invalid, or invalid permissions, unable to upload.\n{}", output_path, err).into());
     let j: Result<_, VideoError> = client.file(output_path).delete().map_err(|err| format!("early exit: \n output path {} invalid, or invalid permissions, unable to delete.\n{}", output_path, err).into());
-    try!(r);
-    try!(j);
+    r?;j?;
     Ok(())
 }
 
@@ -89,5 +88,4 @@ pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoErro
     let mut writer = BufWriter::new(local_file);
     try!(writer.write_all(to_string(json)?.as_bytes()));
     Ok(PathBuf::from(json_path))
-
 }

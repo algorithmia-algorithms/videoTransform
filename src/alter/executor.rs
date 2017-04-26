@@ -9,11 +9,12 @@ use serde_json::Value;
 use common::video_error::VideoError;
 use common::structs::alter::{Alter, Altered};
 use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced};
-use common::alter::functions;
+use alter::functions;
+use alter::utilities::*;
 use common::structs::scattered::Scattered;
 use common::structs::gathered::Gathered;
-use common::utilities::*;
-use common::json_utils::{SearchResult, alter_format_search, combine_extracted_data};
+use common::misc::*;
+use common::json_utils::{AdvancedInput};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use std::ops::*;
@@ -21,7 +22,7 @@ use std::io::{self, Write};
 use std_semaphore::Semaphore;
 use std::ascii::AsciiExt;
 static FPSMAX: f64 = 60f64;
-use common::utilities;
+use common::misc;
  //used to template all of the default image proc algorithms, uses rayon for multi-threading and uses Arc<Mutex> locking to fail early if an exception is found.
 pub fn default(client: &Algorithmia,
                data: &Scattered,
@@ -32,7 +33,7 @@ pub fn default(client: &Algorithmia,
                starting_threads: isize,
                function: &(Fn(&Alter, Vec<usize>, Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError> + Sync)) -> Result<Altered, VideoError> {
     //generate batches of frames by number, based on the batch size.
-    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(utilities::frame_batches(batch_size, data.num_frames()));
+    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(misc::frame_batches(batch_size, data.num_frames()));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     let mut semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
     let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
@@ -66,13 +67,13 @@ pub fn advanced(client: &Algorithmia,
                 batch_size: usize,
                 starting_threads: isize,
                 input: &Value) -> Result<Altered, VideoError> {
-    let search: Arc<SearchResult> = Arc::new(try!(alter_format_search(input)));
+    let search: Arc<AdvancedInput> = Arc::new(advanced_input_search(input)?);
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
     let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
 
-    let frame_batches = if search.option() == "batch" {utilities::frame_batches(batch_size, data.num_frames())}
-        else {utilities::frame_batches(1, data.num_frames())};
+    let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames())}
+        else { misc::frame_batches(1, data.num_frames())};
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
                                            data.regex().to_owned(),

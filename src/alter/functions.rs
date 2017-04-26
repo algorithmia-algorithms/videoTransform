@@ -1,20 +1,17 @@
 use algorithmia::Algorithmia;
 use algorithmia::algo::*;
 use algorithmia::error::ApiError;
-use std::collections::BTreeMap;
-use common::file_mgmt;
 use std::path::*;
 use serde_json::Value;
-use common::json_utils::SearchResult;
+use alter::utilities::format_advanced_input;
+use common::json_utils::AdvancedInput;
 use serde_json::Value::*;
 use std::error::Error;
 use std::string::String;
 use common::video_error::VideoError;
 use std::ffi::OsStr;
 use common::structs::alter;
-use common::structs::extract;
-use common::json_utils::{prepare_json_alter};
-use common::utilities::*;
+use common::misc::*;
 use std_semaphore::Semaphore;
 use std::sync::Arc;
 use std::ops::Index;
@@ -100,7 +97,7 @@ pub fn colorful_colorization(input: &alter::Alter, batch: Vec<usize>, semaphore:
     Ok(downloaded)
 }
 
-pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String, algo_input: &SearchResult, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
+pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
 {
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -111,7 +108,7 @@ pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String
 
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
 
-    let json: Value = prepare_json_alter(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames))?;
+    let json: Value = format_advanced_input(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames))?;
 //    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
@@ -123,7 +120,7 @@ pub fn advanced_batch(input: &alter::Alter, batch: Vec<usize>, algorithm: String
 }
 
 //to keep things as interoperative as possible with batch mode, we keep batch file_path logic until its time to prepare_json, since it's always just a batch size of 1 it's an array with 1 element.
-pub fn advanced_single(input: &alter::Alter, batch: Vec<usize>, algorithm: String, algo_input: &SearchResult, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
+pub fn advanced_single(input: &alter::Alter, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError>
 {
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -133,7 +130,7 @@ pub fn advanced_single(input: &alter::Alter, batch: Vec<usize>, algorithm: Strin
         .iter().map(|str| {PathBuf::from(str.clone())}).collect::<Vec<PathBuf>>();
 
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
-    let json: Value = prepare_json_alter(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap()))?;
+    let json: Value = format_advanced_input(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap()))?;
 //    println!("acquiring semaphore");
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
