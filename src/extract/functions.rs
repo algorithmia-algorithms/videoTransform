@@ -1,22 +1,23 @@
+
 use algorithmia::Algorithmia;
 use algorithmia::algo::*;
 use algorithmia::error::ApiError;
 use std::path::*;
 use serde_json::Value;
-use extract::utilities::process_advanced_input;
+use super::utilities::process_advanced_input;
 use common::json_utils::AdvancedInput;
-use common::file_mgmt;
+use serde_json::Value::*;
 use std::error::Error;
+use std::string::String;
 use common::video_error::VideoError;
 use std::ffi::OsStr;
-use common::structs::extract;
+use common::structs::prelude::*;
 use common::misc::*;
-use std::sync::Arc;
 use std_semaphore::Semaphore;
+use std::sync::Arc;
 use std::ops::Index;
 use either::{Left, Right};
-
-pub fn nudity_detection(input: &extract::Extract, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<Value>, VideoError> {
+pub fn nudity_detection(input: &Extract, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<Value>, VideoError> {
     let algorithm = "algo://sfw/NudityDetectioni2v/0.2.4";
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -40,7 +41,7 @@ pub fn nudity_detection(input: &extract::Extract, batch: Vec<usize>, semaphore: 
     Ok(output)
 }
 
-pub fn illustration_tagger(input: &extract::Extract, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<Value>, VideoError> {
+pub fn illustration_tagger(input: &Extract, batch: Vec<usize>, semaphore: Arc<Semaphore>) -> Result<Vec<Value>, VideoError> {
     let algorithm = "algo://deeplearning/IllustrationTagger/0.2.3";
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -67,7 +68,7 @@ pub fn illustration_tagger(input: &extract::Extract, batch: Vec<usize>, semaphor
     Ok(output)
 }
 
-pub fn advanced_single(input: &extract::Extract, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result< Vec<Value>, VideoError> {
+pub fn advanced_single(input: &Extract, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result< Vec<Value>, VideoError> {
     let mut output: Vec<Value> = Vec::new();
     let local_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -89,7 +90,7 @@ pub fn advanced_single(input: &extract::Extract, batch: Vec<usize>, algorithm: S
     Ok(output)
 }
 
-pub fn advanced_batch(input: &extract::Extract, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result< Vec<Value>, VideoError> {
+pub fn advanced_batch(input: &Extract, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput, semaphore: Arc<Semaphore>) -> Result< Vec<Value>, VideoError> {
     let local_frames: Vec<PathBuf> = batch_file_path(&batch, input.input_regex(), input.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;

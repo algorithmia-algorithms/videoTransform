@@ -1,15 +1,12 @@
 use algorithmia::Algorithmia;
 use std::path::*;
 use common::video_error::VideoError;
-use common::structs::extract;
-use common::structs::scattered::Scattered;
-use common::structs::extract::Extract;
-use extract::functions;
+use common::structs::prelude::*;
+use super::functions;
+use super::utilities::{combine_data, advanced_input_search};
 use rayon::prelude::*;
-use rayon;
 use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced};
 use common::json_utils::AdvancedInput;
-use extract::utilities::{combine_data, advanced_input_search};
 use std::time::{SystemTime, Duration};
 use serde_json::Value;
 use std::sync::{Arc, Mutex, RwLock};
@@ -27,7 +24,7 @@ pub fn default(client: &Algorithmia,
                batch_size: usize,
                duration: f64,
                starting_threads: isize,
-               function: &(Fn(&extract::Extract, Vec<usize>, Arc<Semaphore>) -> Result<Vec<Value>, VideoError> + Sync)) -> Result<Value, VideoError> {
+               function: &(Fn(&Extract, Vec<usize>, Arc<Semaphore>) -> Result<Vec<Value>, VideoError> + Sync)) -> Result<Value, VideoError> {
     //generate batches of frames by number, based on the batch size.
     let frame_stamp: f64 = duration / data.num_frames() as f64;
     let frame_batches: Box<Vec<Vec<usize>>> = Box::new(frame_batches(batch_size, data.num_frames()));
@@ -64,17 +61,16 @@ pub fn advanced(client: &Algorithmia,
                 input: &Value) -> Result<Value, VideoError> {
     let frame_stamp: f64 = duration / data.num_frames() as f64;
     let search: Arc<AdvancedInput> = Arc::new(advanced_input_search(input)?);
-    let frame_batches = if search.option() == "batch" {frame_batches(batch_size, data.num_frames())}
-        else {frame_batches(1, data.num_frames())};
+    let frame_batches = if search.option() == "batch" { frame_batches(batch_size, data.num_frames()) } else { frame_batches(1, data.num_frames()) };
 
     let mut result: Vec<Result<Vec<Value>, VideoError>> = Vec::new();
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
     let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Extract::new(client.clone(),
-                                                        data.regex().to_owned(),
-                                                        data.frames_dir().to_owned(),
-                                                        remote_dir.to_owned()));
+                                               data.regex().to_owned(),
+                                               data.frames_dir().to_owned(),
+                                               remote_dir.to_owned()));
 
     frame_batches.par_iter().map(move |batch| {
         let lock = early_terminate.clone();
@@ -83,11 +79,10 @@ pub fn advanced(client: &Algorithmia,
         if search.option() == "batch" {
             try_algorithm_advanced(&functions::advanced_batch, &formatted_data, &batch,
                                    algorithm, &search, semaphore, lock, time)
+        } else {
+            try_algorithm_advanced(&functions::advanced_single, &formatted_data, &batch,
+                                   algorithm, &search, semaphore, lock, time)
         }
-            else {
-                try_algorithm_advanced(&functions::advanced_single, &formatted_data, &batch,
-                                       algorithm, &search, semaphore, lock, time)
-            }
     }).weight_max().collect_into(&mut result);
     let processed_frames: Vec<Value> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),

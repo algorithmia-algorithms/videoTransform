@@ -3,7 +3,6 @@
 pub mod video_error;
 pub mod file_mgmt;
 pub mod ffmpeg;
-pub mod processing;
 pub mod structs;
 pub mod misc;
 pub mod json_utils;

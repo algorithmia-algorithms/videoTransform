@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 use serde_json::Value;
-use common::video_error::VideoError;
 use common::json_utils::{AdvancedInput, replace_json, search_json};
 use either::Either;
+use common::video_error::VideoError;
 use std::ops::{Index, IndexMut};
 
 static BATCH_INPUT: &'static str = "$BATCH_INPUT";
@@ -11,8 +11,7 @@ static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
 static SINGLE_OUTPUT: &'static str = "$SINGLE_OUTPUT";
 
 
-
-pub fn format_advanced_input(obj: &AdvancedInput, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
+pub fn process_advanced_input(obj: &AdvancedInput, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
     let mut mutable: Value = obj.source().clone();
     let mut in_path = obj.in_path().clone();
     let mut out_path = obj.out_path().clone();
@@ -35,19 +34,15 @@ pub fn advanced_input_search(json: &Value) -> Result<AdvancedInput, VideoError> 
     if batch_in && batch_out {
         println!("json parsed as batch input.");
         Ok(AdvancedInput::new("batch".to_string(), batch_in_path, batch_in_iter, batch_out_path, batch_out_iter, json.clone()))
+    } else if batch_in || batch_out {
+        Err(String::from("json parsing error:\nif batch selected both $BATCH_INPUT and $BATCH_OUTPUT must be defined.").into())
+    } else if single_in && single_out {
+        println!("json parsed as single input.");
+        Ok(AdvancedInput::new("single".to_string(), single_in_path, single_in_iter, single_out_path, single_out_iter, json.clone()))
+    } else if single_in || single_out {
+        Err(String::from("json parsing error:\nif single selected both $SINGLE_INPUT and $SINGLE_OUTPUT must be defined.").into())
+    } else {
+        Err(String::from("json parsing error:\nadvanced_input did not contain any keywords!").into())
     }
-        else if batch_in || batch_out {
-            Err(String::from("json parsing error:\nif batch selected both $BATCH_INPUT and $BATCH_OUTPUT must be defined.").into())
-        }
-            else if single_in && single_out {
-                println!("json parsed as single input.");
-                Ok(AdvancedInput::new("single".to_string(), single_in_path, single_in_iter, single_out_path, single_out_iter, json.clone()))
-            }
-                else if single_in || single_out {
-                    Err(String::from("json parsing error:\nif single selected both $SINGLE_INPUT and $SINGLE_OUTPUT must be defined.").into())
-                }
-                    else {
-                        Err(String::from("json parsing error:\nadvanced_input did not contain any keywords!").into())
-                    }
 }
 

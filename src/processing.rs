@@ -7,18 +7,17 @@ use rayon;
 use serde_json::Value;
 use common::ffmpeg::FFMpeg;
 use common::video_error::VideoError;
-use common::structs::alter::Altered;
-use common::structs::scattered::Scattered;
-use common::structs::gathered::Gathered;
-use common::structs::extract::Extract;
-use alter;
-use extract;
+use common::structs::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::ops::*;
 use std::io::{self, Write};
 use std::ascii::AsciiExt;
 use common::misc;
 use uuid::Uuid;
+
+//import all packages
+use transform;
+use extract;
 
 static MAX_FPS: f64 = 60f64;
 static MAX_FRAMES: u64 = 10000;
@@ -73,15 +72,15 @@ pub fn gather(ffmpeg: &FFMpeg,
 }
 
 // alter branch, used by VideoTransform
-pub fn alter(client: &Algorithmia,
-             algorithm: &str,
-             algo_input: Option<&Value>,
-             data: &Scattered,
-             remote_dir: &str,
-             local_out_dir: &Path,
-             output_regex: &str,
-             threads: usize,
-             batch_size: usize) -> Result<Altered, VideoError> {
+pub fn transform(client: &Algorithmia,
+                 algorithm: &str,
+                 algo_input: Option<&Value>,
+                 data: &Scattered,
+                 remote_dir: &str,
+                 local_out_dir: &Path,
+                 output_regex: &str,
+                 threads: usize,
+                 batch_size: usize) -> Result<Altered, VideoError> {
     let config = rayon::Configuration::new().set_num_threads(threads);
     let start_threads: isize = threads as isize;
     println!("starting threads: {}", start_threads);
@@ -90,16 +89,16 @@ pub fn alter(client: &Algorithmia,
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
-            alter::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, start_threads, advanced_input)
+            transform::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, start_threads, advanced_input)
         }
         //no custom json input, so we use defaults.
         None => {
             if algorithm.to_ascii_lowercase().as_str().contains("deepfilter") {
-                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::deep_filter)
+                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &transform::functions::deep_filter)
             } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
-                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::salnet)
+                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &transform::functions::salnet)
             } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
-                alter::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &alter::functions::colorful_colorization)
+                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, start_threads, &transform::functions::colorful_colorization)
             } else {
                 println!("failed to pattern match anything.");
                 Err(String::from("No default algorithm definition, advanced_input required.").into())
