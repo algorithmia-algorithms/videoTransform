@@ -16,7 +16,7 @@ use std::ops::IndexMut;
 static MAX_ATTEMPTS_ALGO: usize = 3usize;
 
 
-//exits early if the or if the output path is invalid.
+//exits early if the output path is invalid.
 pub fn early_exit(client: &Algorithmia, output_path: &str) -> Result<(), VideoError> {
     //try to upload a 0 size file to the output path, then delete it. if both succeed then the path is valid.
     let r: Result<_, VideoError> = client.file(output_path).put("").map_err(|err| format!("early exit: \n output path {} invalid, or invalid permissions, unable to upload.\n{}", output_path, err).into());
