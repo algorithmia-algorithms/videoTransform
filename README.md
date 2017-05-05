@@ -102,9 +102,9 @@ The keywords are:
 
 This algorithm has default parameters set up for a number of algorithms, this list will grow as new image altering algorithms are released:
 
-*   **DeepFilter** - uses version `0.6.0`, `filterName` is `gan_vogh` (deeplearning/DeepFilter)
-*   **SalNet** - uses version `0.2.0`ÃÂ (deeplearning/SalNet)
-*   **Colorful Image Colorization** - uses version `1.1.6`ÃÂ (deeplearning/ColorfulImageColorization)
+*   **DeepFilter** - uses version `0.6.0`, `filterName` is `gan_vogh` - (deeplearning/DeepFilter)
+*   **SalNet** - uses version `0.2.0` - (deeplearning/SalNet)
+*   **Colorful Image Colorization** - uses version `1.1.6` - (deeplearning/ColorfulImageColorization)
 
 <a id="examples"></a>
 
