@@ -4,7 +4,7 @@ use std_semaphore::Semaphore;
 use std::sync::{Arc, Mutex};
 use common::video_error::VideoError;
 use common::json_utils::AdvancedInput;
-static DURATION:u64 = 3;
+static DURATION:u64 = 5;
 
 pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
                                    data: &T, batch: &Vec<usize>, semaphore: Arc<Semaphore>,
