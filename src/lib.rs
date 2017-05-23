@@ -3,7 +3,6 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
-extern crate hyper;
 extern crate regex;
 extern crate rayon;
 extern crate uuid;
@@ -57,7 +56,7 @@ impl Algo {
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         let video_compression: Option<u64> = entry.video_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         misc::early_exit(&parameters.client, &entry.output_file)?;
-        let video = file_mgmt::get_file(&entry.input_file, &parameters.local_input_file, &parameters.client)?;
+        let video = file_mgmt::get_file(&entry.input_file, &parameters.local_input_file, &parameters.data_api_work_directory, &parameters.client)?;
         let scatter_data: Scattered = processing::scatter(&parameters.ffmpeg, &video, &parameters.scattered_working_directory,
                                                           &parameters.scatter_regex, fps, image_compression)?;
         let processed_data = processing::transform(&parameters.client, &entry.algorithm, entry.advanced_input.as_ref(),

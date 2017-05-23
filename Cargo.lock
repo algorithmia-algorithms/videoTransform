@@ -2,10 +2,9 @@
 name = "VideoTransform"
 version = "0.1.0"
 dependencies = [
- "algorithmia 2.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "algorithmia 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "either 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "quick-error 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -36,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "algorithmia"
-version = "2.0.3"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "base64 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -698,7 +697,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [metadata]
 "checksum advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e06588080cb19d0acb6739808aafa5f26bfb2ca015b2b6370028b44cf7cb8a9a"
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
-"checksum algorithmia 2.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "483fbce0fb5fc3eda40017c0e54a3f1e6c8eba03bd5187c8f5bec26279443dbf"
+"checksum algorithmia 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "69ab10d58bf2f613d3be114698b1839eb3d374c6d55d438e6b22ebe66b1d522b"
 "checksum antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "34fde25430d87a9388dadbe6e34d7f72a462c8b43ac8d309b42b0a8505d7e2a5"
 "checksum backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f551bc2ddd53aea015d453ef0b635af89444afa5ed2405dd0b2062ad5d600d80"
 "checksum backtrace-sys 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "d192fd129132fbc97497c1f2ec2c2c5174e376b95f535199ef4fe0a293d33842"
