@@ -162,4 +162,5 @@ This algorithm has default parameters set up for a number of algorithms, this li
 # Credits
 
 All video processing is handled by `FFMpeg`, which is a fantastic video/image manipulation tool that can be found [here](https://ffmpeg.org/)<a id="console"></a>
+
 [smd]: https://algorithmia.com/algorithms/media/SmartVideoDownloader
