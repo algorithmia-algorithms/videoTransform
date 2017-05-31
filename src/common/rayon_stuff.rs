@@ -4,11 +4,12 @@ use std_semaphore::Semaphore;
 use std::sync::{Arc, Mutex};
 use common::video_error::VideoError;
 use common::json_utils::AdvancedInput;
-static DURATION:u64 = 5;
+static INITIAL_DURATION:u64 = 1;
 
 pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
                                    data: &T, batch: &Vec<usize>, semaphore: Arc<Semaphore>,
                                    error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
+    let mut duration = INITIAL_DURATION;
     if let Some(ref err) = *(error.lock().unwrap()) {
         return Err(err.to_string().into())
     }
@@ -21,8 +22,9 @@ pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<Semaphore>
                 let curr_time: SystemTime = SystemTime::now();
                 let prev_time: SystemTime = *time.lock().unwrap();
                 let time_diff: Duration = curr_time.duration_since(prev_time)?;
-                if time_diff.as_secs() > DURATION {
+                if time_diff.as_secs() > duration {
                     println!("slowing down...");
+                    duration = if duration < 5{duration + 1} else{5};
                     *time.lock().unwrap() = SystemTime::now();
                     try_algorithm_default(function, data, batch, semaphore, error, time)
                 } else {
@@ -44,6 +46,7 @@ pub fn try_algorithm_advanced<T, J>(function: &(Fn(&T,Vec<usize>, String, &Advan
                                     data: &T, batch: &Vec<usize>, algo: &str,
                                     json: &AdvancedInput, semaphore: Arc<Semaphore>,
                                     error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
+    let mut duration = INITIAL_DURATION;
     if let Some(ref err) = *(error.lock().unwrap()) {
         return Err(err.to_string().into())
     }
@@ -56,8 +59,9 @@ pub fn try_algorithm_advanced<T, J>(function: &(Fn(&T,Vec<usize>, String, &Advan
                 let curr_time: SystemTime = SystemTime::now();
                 let prev_time: SystemTime = *time.lock().unwrap();
                 let time_diff: Duration = curr_time.duration_since(prev_time)?;
-                if time_diff.as_secs() > DURATION {
+                if time_diff.as_secs() > duration {
                     println!("slowing down...");
+                    duration = if duration < 5{duration + 1} else{5};
                     *time.lock().unwrap() = curr_time;
                     try_algorithm_advanced(function, data, batch, algo, json, semaphore, error, time)
                 }

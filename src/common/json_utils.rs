@@ -93,7 +93,7 @@ pub fn search_json(json: &Value, path: &mut VecDeque<String>, keyword: &str) -> 
             Err(format!("advanced input was neither a json object or an array.").into())
         }
 }
-//gets the cursor of the json tree into the requested scope, except it leaves the path_vec objects with one value in it, this is used for matching & replacing.
+//gets the cursor of the json tree into the requested scope
 fn get_cursor<'a>(input: &'a mut Value, path_vec: &mut VecDeque<String>) -> Result< &'a mut Value, VideoError> {
     if input.is_object() {
         let path = path_vec.pop_front().ok_or(format!("did not exit properly, path contained a json object, not a final node of array or string."))?;

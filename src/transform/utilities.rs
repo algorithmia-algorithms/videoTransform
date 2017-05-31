@@ -11,7 +11,7 @@ static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
 static SINGLE_OUTPUT: &'static str = "$SINGLE_OUTPUT";
 
 
-pub fn process_advanced_input(obj: &AdvancedInput, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
+pub fn replace_variables(obj: &AdvancedInput, input: Either<&Vec<String>, &str>, output: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
     let mut mutable: Value = obj.source().clone();
     let mut in_path = obj.in_path().clone();
     let mut out_path = obj.out_path().clone();
