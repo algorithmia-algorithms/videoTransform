@@ -7,6 +7,14 @@ This algorithm uses an image processing algorithm to alter each frame of a video
 
 **note:** This algorithm is royalty free, but the image processing algorithms it can call might not be, check your account's credit balance before running this algorithm on a custom video.
 
+
+# Changelog
+0.5.0 - May 23, 2017:
+* Added [Smart Video Downloader][smd] support to resolve a compressed gzip request problem
+* with Smart Video Downloader added, `input_file` may now point to any web hosted URL, including youtube, vimeo, etc.
+
+
+
 # Table of Contents
 
 *   [Input](#inputs)
@@ -154,3 +162,5 @@ This algorithm has default parameters set up for a number of algorithms, this li
 # Credits
 
 All video processing is handled by `FFMpeg`, which is a fantastic video/image manipulation tool that can be found [here](https://ffmpeg.org/)<a id="console"></a>
+
+[smd]: https://algorithmia.com/algorithms/media/SmartVideoDownloader

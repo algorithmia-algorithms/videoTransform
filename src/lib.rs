@@ -48,7 +48,7 @@ algo_entrypoint!(Entry => Algo::helper);
 impl Algo {
     fn helper(&self, entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
         let batch_size = 10;
-        let starting_threads = 20;
+        let starting_threads = 19;
         let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads,
                                           &entry.output_file, &entry.input_file,
                                           entry.image_compression.clone().is_some())?;
