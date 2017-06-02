@@ -4,7 +4,7 @@ use algorithmia::algo::*;
 use algorithmia::error::ApiError;
 use std::path::*;
 use serde_json::Value;
-use super::utilities::process_advanced_input;
+use super::utilities::replace_variables;
 use common::json_utils::AdvancedInput;
 use serde_json::Value::*;
 use std::error::Error;
@@ -74,19 +74,19 @@ pub fn advanced_single(input: &Extract, batch: Vec<usize>, algorithm: String, al
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
     batch_upload_file(&local_frames, &remote_frames, input.client())?;
+    semaphore.acquire();
     for _ in 0..remote_frames.len() {
-        let json: Value = process_advanced_input(algo_input, Right(remote_frames.iter().next().unwrap()))?;
+        let json: Value = replace_variables(algo_input, Right(remote_frames.iter().next().unwrap()))?;
 
         //println!("acquiring semaphore");
-        semaphore.acquire();
         let response: AlgoResponse = try_algorithm(input.client(), &algorithm, &json)?;
-        semaphore.release();
         //println!("releasing semaphore");
 
         let output_json: Value = response.into_json()
             .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
         output.push(output_json);
     }
+    semaphore.release();
     Ok(output)
 }
 
@@ -96,7 +96,7 @@ pub fn advanced_batch(input: &Extract, batch: Vec<usize>, algorithm: String, alg
     let remote_frames: Vec<String> = batch_file_path(&batch, input.input_regex(), input.remote_working())?;
 
     batch_upload_file(&local_frames, &remote_frames, input.client())?;
-    let json: Value = process_advanced_input(algo_input, Left(&remote_frames))?;
+    let json: Value = replace_variables(algo_input, Left(&remote_frames))?;
 
     //println!("acquiring semaphore");
     semaphore.acquire();

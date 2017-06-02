@@ -47,9 +47,10 @@ algo_entrypoint!(Entry => Algo::helper);
 
 impl Algo {
     fn helper(&self, entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
-        let batch_size = 10;
-        let starting_threads = 19;
-        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads,
+        let batch_size = 5;
+        let starting_threads = 5;
+        let max_threads = 35;
+        let parameters: PreDefines = prep(RunFormat::TestLocal, batch_size, starting_threads, max_threads,
                                           &entry.output_file, &entry.input_file,
                                           entry.image_compression.clone().is_some())?;
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
@@ -61,7 +62,7 @@ impl Algo {
                                                           &parameters.scatter_regex, fps, image_compression)?;
         let processed_data = processing::transform(&parameters.client, &entry.algorithm, entry.advanced_input.as_ref(),
                                                    &scatter_data, &parameters.data_api_work_directory, &parameters.processed_working_directory,
-                                                   &parameters.process_regex, parameters.starting_threads, parameters.batch_size)?;
+                                                   &parameters.process_regex, parameters.max_threads, parameters.starting_threads, parameters.batch_size)?;
         let gathered: Gathered = processing::gather(&parameters.ffmpeg, &parameters.video_working_directory, &parameters.local_output_file, processed_data,
                                                     scatter_data.original_video(), video_compression)?;
         let uploaded = file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &parameters.client)?;
@@ -95,12 +96,14 @@ struct PreDefines{
     scatter_regex: String,
     process_regex: String,
     batch_size: usize,
-    starting_threads: usize,
+    starting_threads: isize,
+    max_threads: isize
 }
 
 fn prep(format: RunFormat,
         batch_size: usize,
         starting_threads: usize,
+        max_threads: usize,
         output_file: &str,
         input_file: &str,
         has_image_compression: bool
@@ -108,7 +111,7 @@ fn prep(format: RunFormat,
 
     let prod_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
     let test_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
-    let test_api = "https://apitest.algorithmia.com";
+    let test_api = "https://api.test.algorithmia.com";
     let session = String::from("data://.session");
     let not_session = String::from("data://.my/ProcessVideo");
 
@@ -142,7 +145,8 @@ fn prep(format: RunFormat,
         scatter_regex: scatter_regex,
         process_regex: process_regex,
         batch_size: batch_size,
-        starting_threads: starting_threads
+        starting_threads: starting_threads as isize,
+        max_threads: max_threads as isize
     })
 }
 
@@ -158,7 +162,7 @@ mod test {
     "input_file" : "data://quality/videos/kenny_test.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm":"algo://deeplearning/DeepFilter",
-    "fps":10,
+    "fps":29,
     "video_compression" : 30,
 //    "image_compression" : 20
     });
@@ -182,9 +186,9 @@ mod test {
     "input_file" : "data://zeryx/Video/K5qACexzwOI.mp4",
     "output_file" : "data://quality/Videos/silicon_valley_censored.mp4",
     "algorithm" : "algo://cv/CensorFace",
-    "fps" : 10,
+    "fps" : 20,
 //    "video_compression" : 25,
-//    "image_compression" : 25,
+//    "image_compression" : 35,
     "advanced_input" : advanced_input
     });
         let json = AlgoInput::Json(Cow::Owned(raw));
@@ -205,8 +209,8 @@ mod test {
     "input_file" : "data://quality/videos/kenny_test.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm" : "algo://deeplearning/SalNet",
-    "fps" : 4,
-    "video_compression" : 25,
+    "fps" : 10,
+//    "video_compression" : 25,
     "advanced_input" : advanced_input
     });
         let json = AlgoInput::Json(Cow::Owned(raw));

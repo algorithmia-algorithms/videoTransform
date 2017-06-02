@@ -10,7 +10,7 @@ static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
 
 
 
-pub fn process_advanced_input(obj: &AdvancedInput, input: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
+pub fn replace_variables(obj: &AdvancedInput, input: Either<&Vec<String>, &str>) -> Result<Value, VideoError> {
     let mut mutable: Value = obj.source().clone();
     let mut in_path = obj.in_path().clone();
     //for input

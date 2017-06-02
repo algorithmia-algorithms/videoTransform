@@ -9,11 +9,11 @@ use serde_json::Value;
 use super::functions::{advanced_batch, advanced_single};
 use super::utilities::advanced_input_search;
 use common::video_error::VideoError;
-use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced};
+use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
 use common::misc;
 use common::structs::prelude::*;
 use common::json_utils::AdvancedInput;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic};
 use std::time::SystemTime;
 use std::ops::*;
 use std::io::{self, Write};
@@ -29,12 +29,15 @@ pub fn default(client: &Algorithmia,
                output_regex: &str,
                batch_size: usize,
                starting_threads: isize,
+                max_threads: isize,
                function: &(Fn(&Alter, Vec<usize>, Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError> + Sync)) -> Result<Altered, VideoError> {
     //generate batches of frames by number, based on the batch size.
     let frame_batches: Box<Vec<Vec<usize>>> = Box::new(misc::frame_batches(batch_size, data.num_frames()));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
-    let mut semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
+    let semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
     let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut slowdown = atomic::AtomicBool::new(false);
+    let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
                                              data.regex().to_owned(),
@@ -46,7 +49,8 @@ pub fn default(client: &Algorithmia,
         let error_lock = early_terminate.clone();
         let semaphore = semaphore_global.clone();
         let time = time_global.clone();
-        try_algorithm_default(function, &formatted_data, &batch, semaphore, error_lock, time)
+        let mut slowdown_signal = slowdown_signal_global.clone();
+        try_algorithm_default(function, &formatted_data, &batch, semaphore, slowdown_signal, error_lock, time)
     }).weight_max().collect_into(&mut result);
     let processed_frames: Vec<PathBuf> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),
@@ -64,12 +68,15 @@ pub fn advanced(client: &Algorithmia,
                 algorithm: &str,
                 batch_size: usize,
                 starting_threads: isize,
+                max_threads: isize,
                 input: &Value) -> Result<Altered, VideoError> {
     let search: Arc<AdvancedInput> = Arc::new(advanced_input_search(input)?);
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
+    let mut semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
     let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-
+    let mut slowdown = atomic::AtomicBool::new(false);
+    let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames()) } else { misc::frame_batches(1, data.num_frames()) };
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
@@ -84,14 +91,15 @@ pub fn advanced(client: &Algorithmia,
         let lock = early_terminate.clone();
         let semaphore = semaphore_global.clone();
         let time = time_global.clone();
+        let mut slowdown_signal = slowdown_signal_global.clone();
         if search.option() == "batch" {
             io::stderr().write(b"found batch mode.\n")?;
             try_algorithm_advanced(&advanced_batch, &formatted_data, &batch,
-                                   algorithm, &search, semaphore, lock, time)
+                                   algorithm, &search, semaphore, slowdown_signal, lock, time)
         } else {
             io::stderr().write(b"found single mode.\n")?;
             try_algorithm_advanced(&advanced_single, &formatted_data, &batch,
-                                   algorithm, &search, semaphore, lock, time)
+                                   algorithm, &search, semaphore, slowdown_signal, lock, time)
         }
     }).weight_max().collect_into(&mut result);
     try!(io::stderr().write(b"exited parallel map.\n"));
