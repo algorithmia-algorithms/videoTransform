@@ -50,7 +50,7 @@ impl Algo {
         let batch_size = 5;
         let starting_threads = 5;
         let max_threads = 35;
-        let parameters: PreDefines = prep(RunFormat::TestLocal, batch_size, starting_threads, max_threads,
+        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads, max_threads,
                                           &entry.output_file, &entry.input_file,
                                           entry.image_compression.clone().is_some())?;
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
