@@ -14,7 +14,7 @@ use std::time::Duration;
 use std::thread;
 use std::error::Error as StdError;
 static SMART_VIDEO_DOWNLOADER: &'static str = "algo://media/SmartVideoDownloader/0.2.0";
-static MAX_ATTEMPTS_DATA: usize = 5;
+static MAX_ATTEMPTS_DATA: usize = 7;
 
 //gets any remote file, http/https or data connector
 pub fn get_file(url: &str, local_path: &Path, remote_scratch: &str, client: &Algorithmia) -> Result<PathBuf, VideoError> {
