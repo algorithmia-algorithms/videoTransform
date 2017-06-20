@@ -72,15 +72,15 @@ pub fn prepare_semaphore(starting_threads: isize, max_threads: isize) -> Arc<Sem
 
 fn threading_strategizer(previous_time: Arc<Mutex<SystemTime>>, current: SystemTime, slowdown_signal: Arc<AtomicBool>, semaphore: Arc<Semaphore>) -> () {
     let time_diff: Duration = current.duration_since(*previous_time.lock().unwrap()).unwrap();
-    println!("time difference is... {}", time_diff.as_secs());
+    // println!("time difference is... {}", time_diff.as_secs());
     if time_diff.as_secs() > DURATION {
         *previous_time.lock().unwrap() = current;
-        println!("time check...");
+        // println!("time check...");
         if (*slowdown_signal).load(Ordering::Relaxed) == true {
-            println!("We're slowing down.");
+            // println!("We're slowing down.");
             semaphore.acquire();
         } else {
-            println!("No need to slow down, lets speed up.");
+            // println!("No need to slow down, lets speed up.");
             semaphore.release();
         }
         //maybe we don't want to reset this to
