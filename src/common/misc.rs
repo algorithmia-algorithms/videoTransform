@@ -1,19 +1,13 @@
 use algorithmia::prelude::*;
-use algorithmia::error::ApiError;
 use algorithmia::algo::*;
-use serde_json::{Value, to_string};
-use regex::Regex;
+use serde_json::Value;
 use common::file_mgmt::*;
 use std::path::*;
 use common::video_error::VideoError;
-use std::fs::File;
-use std::time;
 use std::time::Duration;
-use std::ops::Index;
 use std::thread;
-use std::io::{BufWriter, Write};
-use std::ops::IndexMut;
-static MAX_ATTEMPTS_ALGO: usize = 3usize;
+use std::io::Write;
+static MAX_ATTEMPTS_ALGO: usize = 5usize;
 
 
 //exits early if the or if the output path is invalid.
@@ -83,9 +77,9 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Re
 }
 
 
-pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {
-    let mut local_file = File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)})?;
-    let mut writer = BufWriter::new(local_file);
-    try!(writer.write_all(to_string(json)?.as_bytes()));
-    Ok(PathBuf::from(json_path))
-}
+//pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {
+//    let mut local_file = File::create(json_path).map_err(|err| {format!("failed to create local json file {}\n{}", json_path.display(), err)})?;
+//    let mut writer = BufWriter::new(local_file);
+//    try!(writer.write_all(to_string(json)?.as_bytes()));
+//    Ok(PathBuf::from(json_path))
+//}
