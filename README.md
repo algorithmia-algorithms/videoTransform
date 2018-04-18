@@ -3,7 +3,7 @@
 
 This algorithm uses an image processing algorithm to alter each frame of a video, then recombines it back into a freshly transformed video file.
 
-**note:** This algorithm takes longer than most other algorithms as it recursively calls an image algorithm over each frame of a video file, make sure to add a custom timeout to your algorithm call.
+**note:** This algorithm takes longer than most other algorithms as it recursively calls an image algorithm over each frame of a video file, make sure to add a [custom timeout to your algorithm call][timeout].
 
 **note:** This algorithm is royalty free, but the image processing algorithms it can call might not be, check your account's credit balance before running this algorithm on a custom video.
 
@@ -164,3 +164,4 @@ This algorithm has default parameters set up for a number of algorithms, this li
 All video processing is handled by `FFMpeg`, which is a fantastic video/image manipulation tool that can be found [here](https://ffmpeg.org/)<a id="console"></a>
 
 [smd]: https://algorithmia.com/algorithms/media/SmartVideoDownloader
+[timeout]: http://docs.algorithmia.com/#query-parameters
