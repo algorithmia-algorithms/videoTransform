@@ -1,5 +1,5 @@
 use algorithmia::{Algorithmia};
-use algorithmia::data::FileData;
+use algorithmia::data::{FileData, HasDataPath};
 use std::prelude::*;
 use std;
 use std::path::*;
@@ -60,11 +60,26 @@ pub fn get_file_from_algorithmia(url: &str, local_path: &Path, client: &Algorith
     let local_dir = local_path.parent().unwrap();
     create_directory(local_dir);
     let file = client.file(&url);
-    let mut remote_file: FileData = file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
-    let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
-    thread::sleep(Duration::from_secs(2));
-    std::io::copy(&mut remote_file, &mut local_file).map_err(|err| format!("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err))?;
-    Ok(PathBuf::from(local_path))
+    let mut attempts = 0;
+    loop {
+        match file.exists() {
+            Ok(true) => {
+                let mut remote_file: FileData = file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
+                let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
+                thread::sleep(Duration::from_secs(2));
+                std::io::copy(&mut remote_file, &mut local_file).map_err(|err| format!("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err))?;
+                return Ok(PathBuf::from(local_path))
+            }
+            Ok(false) => {
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
+            }
+            Err(error) => return Err(format!("recieved an error trying to download {}\n{}", url, error).into())
+        }
+        if attempts > MAX_ATTEMPTS_DATA {
+            return Err(format!("failed {} times to download file {}", attempts, url).into())
+        }
+    }
 }
 
 pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
