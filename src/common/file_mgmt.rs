@@ -107,7 +107,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
 }
 
 pub fn create_directory(directory: &Path) -> () {
-    create_dir_all(directory);
+    _ = create_dir_all(directory);
 }
 
 pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
@@ -118,7 +118,7 @@ pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
 pub fn clean_up(original_dir: Option<&Path>, process_dir: Option<&Path>, video_dir: &Path) -> () {
     original_dir.map(|dir| { remove_dir_all(dir) });
     process_dir.map(|dir| { remove_dir_all(dir) });
-    remove_dir_all(video_dir);
+    _ = remove_dir_all(video_dir);
 }
 
 

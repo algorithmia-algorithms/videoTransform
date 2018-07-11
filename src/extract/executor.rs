@@ -6,6 +6,7 @@ use super::functions;
 use super::utilities::{combine_data, advanced_input_search};
 use rayon::prelude::*;
 use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
+use common::watchdog::watchdog_thread;
 use common::json_utils::AdvancedInput;
 use std::time::{SystemTime, Duration};
 use serde_json::Value;
@@ -39,6 +40,7 @@ pub fn default(client: &Algorithmia,
                                                data.regex().to_owned(),
                                                data.frames_dir().to_owned(),
                                                remote_dir.to_owned()));
+
     frame_batches.par_iter().map(move |batch| {
         let error_lock = early_terminate.clone();
         let semaphore = semaphore_global.clone();
