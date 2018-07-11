@@ -2,7 +2,7 @@
 use std::time::{Duration, SystemTime};
 use std::ops::*;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver};
 use common::video_error::VideoError;
 
 
@@ -18,7 +18,7 @@ pub fn watchdog_thread(completion_rx: Receiver<usize>, terminate_tx: Arc<Mutex<O
         finished_jobs = finished_jobs + 1f64;
         let current_time_delta = current_time.duration_since(start_time.clone())?;
         let check_time_delta = current_time.duration_since(check_time.clone())?;
-        if (check_time_delta.as_secs() > 10) {
+        if check_time_delta.as_secs() > 10 {
             let time_estimate = time_estimate(current_time_delta, finished_jobs, total_jobs as f64);
             if time_estimate as f64 >= MAX_TIME * 1.5 {
                 let error_msg = format!("watchdog thread detected.\nMax algo run time: {}s\nAnticipated runtime: {}s\
@@ -36,7 +36,7 @@ pub fn watchdog_thread(completion_rx: Receiver<usize>, terminate_tx: Arc<Mutex<O
 
 fn time_estimate(current_time_delta: Duration, finished_jobs: f64, total_jobs: f64) -> f64 {
     let delta_secs = current_time_delta.as_secs() as f64;
-    if(delta_secs >= ADJUSTMENT_TIME){
+    if delta_secs >= ADJUSTMENT_TIME {
         let remaining_jobs = total_jobs - finished_jobs;
         let jobs_per_sec: f64 = finished_jobs / delta_secs;
         println!("jobs per second is {}", jobs_per_sec);

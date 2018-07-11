@@ -1,13 +1,8 @@
 use algorithmia::{Algorithmia};
 use algorithmia::data::{FileData, HasDataPath};
-use std::prelude::*;
 use std;
 use std::path::*;
-use std::time;
 use std::fs::{File, ReadDir, read_dir, create_dir_all, remove_dir_all, metadata};
-use std::io::{Read, Write};
-use serde_json::value::*;
-use serde_json::to_string;
 use regex::Regex;
 use common::video_error::VideoError;
 use std::time::Duration;
@@ -107,7 +102,7 @@ pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Re
 }
 
 pub fn create_directory(directory: &Path) -> () {
-    _ = create_dir_all(directory);
+    let _ = create_dir_all(directory);
 }
 
 pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
@@ -118,7 +113,7 @@ pub fn get_filesize_mb(file: &Path) -> Result<u64, VideoError> {
 pub fn clean_up(original_dir: Option<&Path>, process_dir: Option<&Path>, video_dir: &Path) -> () {
     original_dir.map(|dir| { remove_dir_all(dir) });
     process_dir.map(|dir| { remove_dir_all(dir) });
-    _ = remove_dir_all(video_dir);
+    let _ = remove_dir_all(video_dir);
 }
 
 
