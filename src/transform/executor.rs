@@ -1,14 +1,13 @@
 use algorithmia::Algorithmia;
-//use common::ffmpeg::FFMpeg;
-//use common::ffmpeg;
 use std::path::*;
 use common::file_mgmt;
 use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
 use super::functions::{advanced_batch, advanced_single};
-use super::utilities::advanced_input_search;
+use common::utilities::advanced_input_search_transform;
 use common::video_error::VideoError;
+use common::watchdog;
 use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
 use common::misc;
 use common::structs::prelude::*;
@@ -20,7 +19,6 @@ use std::io::{self, Write};
 use std_semaphore::Semaphore;
 use std::ascii::AsciiExt;
 
-static FPSMAX: f64 = 60f64;
 //used to template all of the default image proc algorithms, uses rayon for multi-threading and uses Arc<Mutex> locking to fail early if an exception is found.
 pub fn default(client: &Algorithmia,
                data: &Scattered,
@@ -40,18 +38,23 @@ pub fn default(client: &Algorithmia,
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
-                                             data.regex().to_owned(),
-                                             output_regex.to_owned(),
-                                             local_out_dir.to_owned(),
-                                             data.frames_dir().to_owned(),
-                                             remote_dir.to_owned()));
+                                             data.regex().clone(),
+                                             output_regex.clone(),
+                                             local_out_dir.clone(),
+                                             data.frames_dir().clone(),
+                                             remote_dir.clone()));
+    let wd = watchdog::Watchdog::create(early_terminate.clone(), frame_batches.len());
+    let wd_t = wd.get_comms();
     frame_batches.par_iter().map(move |batch| {
         let error_lock = early_terminate.clone();
         let semaphore = semaphore_global.clone();
-        let time = time_global.clone();
         let mut slowdown_signal = slowdown_signal_global.clone();
-        try_algorithm_default(function, &formatted_data, &batch, semaphore, slowdown_signal, error_lock, time)
+        let time = time_global.clone();
+        let res = try_algorithm_default(function, &formatted_data, &batch, semaphore, slowdown_signal, error_lock, time);
+        wd_t.send_success_signal();
+        res
     }).weight_max().collect_into(&mut result);
+    wd.terminate();
     let processed_frames: Vec<PathBuf> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())
@@ -70,7 +73,7 @@ pub fn advanced(client: &Algorithmia,
                 starting_threads: isize,
                 max_threads: isize,
                 input: &Value) -> Result<Altered, VideoError> {
-    let search: Arc<AdvancedInput> = Arc::new(advanced_input_search(input)?);
+    let search: Arc<AdvancedInput> = Arc::new(advanced_input_search_transform(input)?);
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     let mut semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
@@ -80,29 +83,31 @@ pub fn advanced(client: &Algorithmia,
     let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames()) } else { misc::frame_batches(1, data.num_frames()) };
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
-                                             data.regex().to_owned(),
-                                             output_regex.to_owned(),
-                                             local_out_dir.to_owned(),
-                                             data.frames_dir().to_owned(),
-                                             remote_dir.to_owned()));
-
+                                             data.regex().clone(),
+                                             output_regex.clone(),
+                                             local_out_dir.clone(),
+                                             data.frames_dir().clone(),
+                                             remote_dir.clone()));
+    let wd = watchdog::spawn(early_terminate.clone(), frame_batches.len());
+    let wd_t = wd.get_comms();
     io::stderr().write(b"starting parallel map.\n")?;
     frame_batches.par_iter().map(move |batch| {
         let lock = early_terminate.clone();
         let semaphore = semaphore_global.clone();
         let time = time_global.clone();
         let mut slowdown_signal = slowdown_signal_global.clone();
-        if search.option() == "batch" {
-            io::stderr().write(b"found batch mode.\n")?;
+        let res = if search.option() == "batch" {
             try_algorithm_advanced(&advanced_batch, &formatted_data, &batch,
                                    algorithm, &search, semaphore, slowdown_signal, lock, time)
         } else {
-            io::stderr().write(b"found single mode.\n")?;
             try_algorithm_advanced(&advanced_single, &formatted_data, &batch,
                                    algorithm, &search, semaphore, slowdown_signal, lock, time)
-        }
+        };
+        wd_t.send_success_signal();
+        res
     }).weight_max().collect_into(&mut result);
-    try!(io::stderr().write(b"exited parallel map.\n"));
+    wd.terminate();
+    io::stderr().write(b"exited parallel map.\n")?;
     let processed_frames: Vec<PathBuf> = match result.into_iter().collect::<Result<Vec<Vec<_>>, _>>() {
         Ok(frames) => frames.concat(),
         Err(err) => return Err(format!("error, video processing failed: {}", err).into())

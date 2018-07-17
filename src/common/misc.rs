@@ -6,7 +6,7 @@ use std::path::*;
 use common::video_error::VideoError;
 use std::time::Duration;
 use std::thread;
-use std::io::Write;
+//use std::io::Write;
 static MAX_ATTEMPTS_ALGO: usize = 5usize;
 
 

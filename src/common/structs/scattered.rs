@@ -1,4 +1,6 @@
 use std::path::*;
+
+#[derive(Debug, Clone)]
 pub struct Scattered {
     fps: f64,
     original_video: PathBuf,
@@ -16,5 +18,4 @@ impl Scattered {
     pub fn new(frames_dir: PathBuf, num_frames: usize, original_video: PathBuf, fps: f64, regex: String) -> Scattered{
         Scattered {frames_dir: frames_dir, original_video: original_video, fps: fps, frame_regex: regex, num_frames: num_frames}
     }
-    pub fn clone(&self) -> Scattered {self.clone()}
 }

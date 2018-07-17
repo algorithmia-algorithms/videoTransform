@@ -1,5 +1,6 @@
 use std::path::*;
 
+#[derive(Debug, Clone)]
 pub struct Gathered {
     fps: f64,
     video_file: PathBuf

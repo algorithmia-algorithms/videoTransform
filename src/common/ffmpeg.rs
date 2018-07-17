@@ -1,12 +1,12 @@
 use algorithmia::Algorithmia;
-use algorithmia::algo::*;
+//use algorithmia::algo::*;
 use algorithmia::data::*;
 use std::process::Command;
 use common::video_error::VideoError;
 use std::path::*;
 use common::file_mgmt;
 use std::f64;
-use std::ops::*;
+//use std::ops::*;
 
 pub struct FFMpeg{
     ffmpeg_path: PathBuf,

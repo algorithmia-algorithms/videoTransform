@@ -46,7 +46,7 @@ fn get_file_from_html(url: &str, local_path: &Path, remote_file: &str, client: &
     "source": url,
     "output": remote_file
     });
-    let response = client.algo(SMART_VIDEO_DOWNLOADER).pipe(input).map_err(|err| format!("smart video downloader failed: {}\n{}", url, err))?;
+    let _response = client.algo(SMART_VIDEO_DOWNLOADER).pipe(input).map_err(|err| format!("smart video downloader failed: {}\n{}", url, err))?;
     get_file_from_algorithmia(remote_file, local_path, client)
 
 }
@@ -80,7 +80,7 @@ pub fn get_file_from_algorithmia(url: &str, local_path: &Path, client: &Algorith
 pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
     if local_file.exists() {
         let mut attempts = 0;
-        let mut output;
+        let output;
         loop {
             let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
             let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });

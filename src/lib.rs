@@ -3,6 +3,7 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
+#[macro_use]extern crate crossbeam_channel;
 extern crate regex;
 extern crate rayon;
 extern crate uuid;
@@ -159,7 +160,7 @@ mod test {
     #[test]
     fn basic_test() {
         let raw = json!({
-    "input_file" : "data://quality/videos/kenny_test.mp4",
+    "input_file" : "data://zeryx/Video/2016-10-31_11-28-11.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm":"algo://deeplearning/DeepFilter",
     "fps":29,
@@ -183,10 +184,10 @@ mod test {
     "fill_color": "blur"
     });
         let raw = json!({
-    "input_file" : "data://zeryx/Video/K5qACexzwOI.mp4",
+    "input_file" : "data://zeryx/Video/shorter_lounge.mp4",
     "output_file" : "data://quality/Videos/silicon_valley_censored.mp4",
     "algorithm" : "algo://cv/CensorFace",
-    "fps" : 20,
+    "fps" : 60,
 //    "video_compression" : 25,
 //    "image_compression" : 35,
     "advanced_input" : advanced_input
@@ -209,7 +210,7 @@ mod test {
     "input_file" : "data://quality/videos/kenny_test.mp4",
     "output_file" : "data://quality/Videos/kenny_filtered.mp4",
     "algorithm" : "algo://deeplearning/SalNet",
-    "fps" : 10,
+    "fps" : 30,
 //    "video_compression" : 25,
     "advanced_input" : advanced_input
     });

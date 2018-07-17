@@ -3,7 +3,7 @@ use algorithmia::algo::*;
 use algorithmia::error::ApiError;
 use std::path::*;
 use serde_json::Value;
-use super::utilities::replace_variables;
+use common::utilities::replace_variables_transform;
 use common::json_utils::AdvancedInput;
 use serde_json::Value::*;
 use std::error::Error;
@@ -104,7 +104,7 @@ pub fn advanced_batch(input: &Alter, batch: Vec<usize>, algorithm: String, algo_
 
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
 
-    let json: Value = replace_variables(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames))?;
+    let json: Value = replace_variables_transform(algo_input, Left(&remote_pre_frames), Left(&remote_post_frames))?;
     semaphore.acquire();
     try_algorithm(input.client(), &algorithm, &json)?;
     semaphore.release();
@@ -125,7 +125,7 @@ pub fn advanced_single(input: &Alter, batch: Vec<usize>, algorithm: String, algo
     batch_upload_file(&local_pre_frames, &remote_pre_frames, input.client())?;
     semaphore.acquire();
     for _ in 0..remote_pre_frames.len() {
-        let json: Value = replace_variables(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap()))?;
+        let json: Value = replace_variables_transform(algo_input, Right(remote_pre_frames.iter().next().unwrap()), Right(remote_post_frames.iter().next().unwrap()))?;
         try_algorithm(input.client(), &algorithm, &json)?;
     }
     semaphore.release();

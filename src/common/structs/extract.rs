@@ -10,14 +10,14 @@ pub struct Extract {
 
 impl Extract {
     pub fn new(client: Algorithmia,
-               input_regex: String,
-               local_input_directory: PathBuf,
-               remote_working_directory: String) -> Extract {
+               input_regex: &str,
+               local_input_directory: &Path,
+               remote_working_directory: &str) -> Extract {
         Extract {
             client: client,
-            input_regex: input_regex,
-            local_input_directory: local_input_directory,
-            remote_working_directory: remote_working_directory,
+            input_regex: String::from(input_regex),
+            local_input_directory: PathBuf::from(local_input_directory),
+            remote_working_directory: String::from(remote_working_directory),
         }
     }
 

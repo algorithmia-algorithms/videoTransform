@@ -33,18 +33,18 @@ pub struct Alter {
 
 impl Alter {
     pub fn new(client: Algorithmia,
-               input_regex: String,
-               output_regex: String,
-               local_out_directory: PathBuf,
-               local_input_directory: PathBuf,
-               remote_working_directory: String) -> Alter {
+               input_regex: &str,
+               output_regex: &str,
+               local_out_directory: &Path,
+               local_input_directory: &Path,
+               remote_working_directory: &str) -> Alter {
         Alter {
             client: client,
-            output_regex: output_regex,
-            input_regex: input_regex,
-            local_input_directory: local_input_directory,
-            local_output_directory: local_out_directory,
-            remote_working_directory: remote_working_directory,
+            output_regex: String::from(output_regex),
+            input_regex: String::from(input_regex),
+            local_input_directory: PathBuf::from(local_input_directory),
+            local_output_directory: PathBuf::from(local_out_directory),
+            remote_working_directory: String::from(remote_working_directory),
         }
     }
 
