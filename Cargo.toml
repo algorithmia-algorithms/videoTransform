@@ -11,7 +11,7 @@ name = "algorithm"
 
 [dependencies]
 algorithmia = "2.1.0"
-crossbeam-channel = "0.1.3"
+crossbeam-channel = "0.1.2"
 base64 = "0.3.0"
 serde = "0.9.0"
 serde_derive = "0.9.0"
