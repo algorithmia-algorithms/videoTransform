@@ -1,18 +1,11 @@
 use algorithmia::Algorithmia;
-use common::structs::ffmpeg;
 use std::path::*;
 use common::file_mgmt;
-use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
 use common::structs::ffmpeg::FFMpeg;
 use common::video_error::VideoError;
 use common::structs::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::ops::*;
-use std::io::{self, Write};
-use std::ascii::AsciiExt;
-use common::misc;
 use uuid::Uuid;
 
 //import all packages
@@ -112,7 +105,6 @@ pub fn transform(client: &Algorithmia,
 pub fn extract(client: &Algorithmia,
                algorithm: &str,
                algo_input: Option<&Value>,
-               algo_output: Option<&Value>,
                data: &Scattered,
                remote_dir: &str,
                 starting_threads: isize,

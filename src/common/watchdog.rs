@@ -1,6 +1,5 @@
 
 use std::time::{Duration, SystemTime};
-use std::ops::*;
 use std::sync::{Arc, Mutex};
 use crossbeam_channel::{Sender, Receiver};
 use crossbeam_channel as channel;

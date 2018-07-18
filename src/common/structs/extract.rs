@@ -1,6 +1,7 @@
 use algorithmia::Algorithmia;
 use std::path::*;
 
+#[derive(Clone)]
 pub struct Extract {
     client: Algorithmia,
     input_regex: String,

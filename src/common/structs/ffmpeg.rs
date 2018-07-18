@@ -1,9 +1,9 @@
 use algorithmia::Algorithmia;
-use algorithmia::data::*;
 use std::process::Command;
 use common::video_error::VideoError;
 use std::path::*;
 use common::file_mgmt;
+use common::algo;
 use std::f64;
 //use std::ops::*;
 
@@ -19,7 +19,7 @@ impl FFMpeg {
         let ffmpeg_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "ffmpeg.tar.gz"));
         let checker_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"));
         if !checker_file.exists() {
-            let tar_file = file_mgmt::get_file_from_algorithmia(ffmpeg_remote, &ffmpeg_file, client)?;
+            let tar_file = algo::get_file_from_algorithmia(ffmpeg_remote, &ffmpeg_file, client)?;
             println!("got file.");
             let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
             println!("unzipped file.");

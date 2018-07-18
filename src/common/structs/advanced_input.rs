@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use serde_json::Value;
 use either::Either;
 use common::video_error::VideoError;
-use std::ops::{Index, IndexMut};
 use common::json_utils::{replace_json, search_json};
 
 static BATCH_INPUT: &'static str = "$BATCH_INPUT";

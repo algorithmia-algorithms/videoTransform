@@ -13,16 +13,14 @@ use algorithmia::prelude::*;
 use serde_json::Value;
 use serde_json::Number;
 use std::path::*;
-use uuid::Uuid;
 mod common;
 mod extract;
 mod transform;
 mod processing;
-use common::structs::ffmpeg::FFMpeg;
-use common::misc;
-use common::file_mgmt;
-use common::video_error::VideoError;
+use common::algo::{early_exit, get_file, upload_file};
+use common::misc::json_to_file;
 use common::structs::prelude::{Gathered, Scattered};
+use common::preprocess::{PreDefines, ExecutionStyle};
 
 #[derive(Debug, Deserialize)]
 pub struct Entry{
@@ -45,27 +43,52 @@ pub struct Algo;
 // this version doesn't auto-create Algo, so you can create it yourself
 algo_entrypoint!(Entry => Algo::helper);
 
+enum Objective {
+    Transform,
+    Extract
+}
+
+
 impl Algo {
     fn helper(&self, entry: Entry) -> Result<AlgoOutput, Box<std::error::Error>> {
         let batch_size = 5;
         let starting_threads = 5;
         let max_threads = 35;
-        let parameters: PreDefines = prep(RunFormat::Algo, batch_size, starting_threads, max_threads,
+        let format = ExecutionStyle::ProdLocal;
+        let objective = Objective::Transform;
+        let parameters: PreDefines = PreDefines::create(format, batch_size, starting_threads, max_threads,
                                           &entry.output_file, &entry.input_file,
                                           entry.image_compression.clone().is_some())?;
+
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
         let video_compression: Option<u64> = entry.video_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
-        misc::early_exit(&parameters.client, &entry.output_file)?;
-        let video = file_mgmt::get_file(&entry.input_file, &parameters.local_input_file, &parameters.data_api_work_directory, &parameters.client)?;
+        early_exit(&parameters.client, &entry.output_file)?;
+        let video = get_file(&entry.input_file, &parameters.local_input_file, &parameters.data_api_work_directory, &parameters.client)?;
         let scatter_data: Scattered = processing::scatter(&parameters.ffmpeg, &video, &parameters.scattered_working_directory,
                                                           &parameters.scatter_regex, fps, image_compression)?;
-        let processed_data = processing::transform(&parameters.client, &entry.algorithm, entry.advanced_input.as_ref(),
-                                                   &scatter_data, &parameters.data_api_work_directory, &parameters.processed_working_directory,
-                                                   &parameters.process_regex, parameters.max_threads, parameters.starting_threads, parameters.batch_size)?;
-        let gathered: Gathered = processing::gather(&parameters.ffmpeg, &parameters.video_working_directory, &parameters.local_output_file, processed_data,
-                                                    scatter_data.original_video(), video_compression)?;
-        let uploaded = file_mgmt::upload_file(&entry.output_file, gathered.video_file(), &parameters.client)?;
+
+        let video_file: PathBuf = match objective {
+            Objective::Transform => {
+                let processed_data = processing::transform(&parameters.client, &entry.algorithm, entry.advanced_input.as_ref(),
+                                                           &scatter_data, &parameters.data_api_work_directory, &parameters.processed_working_directory,
+                                                           &parameters.process_regex, parameters.max_threads, parameters.starting_threads, parameters.batch_size)?;
+                let gathered: Gathered = processing::gather(&parameters.ffmpeg, &parameters.video_working_directory, &parameters.local_output_file, processed_data,
+                                                            scatter_data.original_video(), video_compression)?;
+                gathered.video_file().clone()
+            }
+            Objective::Extract => {
+                let duration: f64 = parameters.ffmpeg.get_video_duration(&parameters.local_input_file)?;
+                let processed_data: Value = processing::extract(&parameters.client, &entry.algorithm,
+                                                                entry.advanced_input.as_ref(), &scatter_data,
+                                                                &parameters.data_api_work_directory,
+                                                                parameters.starting_threads, parameters.max_threads,
+                                                                duration, batch_size)?;
+                let saved_file: PathBuf = json_to_file(&processed_data, &parameters.local_output_file)?;
+                saved_file
+            }
+        };
+        let uploaded = upload_file(&entry.output_file, &video_file, &parameters.client)?;
         let result = Exit { output_file: uploaded };
         Ok(AlgoOutput::from(&result))
     }
@@ -75,79 +98,6 @@ impl Default for Algo {
     fn default() -> Algo {
         Algo
     }
-}
-
-
-enum RunFormat{
-    Algo,
-    ProdLocal,
-    TestLocal
-}
-
-struct PreDefines{
-    client: Algorithmia,
-    scattered_working_directory: PathBuf,
-    processed_working_directory: PathBuf,
-    video_working_directory: PathBuf,
-    data_api_work_directory: String,
-    local_input_file: PathBuf,
-    local_output_file: PathBuf,
-    ffmpeg: FFMpeg,
-    scatter_regex: String,
-    process_regex: String,
-    batch_size: usize,
-    starting_threads: isize,
-    max_threads: isize
-}
-
-fn prep(format: RunFormat,
-        batch_size: usize,
-        starting_threads: usize,
-        max_threads: usize,
-        output_file: &str,
-        input_file: &str,
-        has_image_compression: bool
-) -> Result<PreDefines, VideoError> {
-
-    let prod_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
-    let test_key = "simA8y8WJtWGW+4h1hB0sLKnvb11";
-    let test_api = "https://api.test.algorithmia.com";
-    let session = String::from("data://.session");
-    let not_session = String::from("data://.my/ProcessVideo");
-
-    let (client, data_work_dir) = match format {
-        RunFormat::Algo => { (Algorithmia::default(), session)}
-        RunFormat::ProdLocal => { (Algorithmia::client(prod_key), not_session)}
-        RunFormat::TestLocal => {(Algorithmia::client_with_url(test_api, test_key), not_session)}
-    };
-    let ffmpeg_remote_url = "data://media/bin/ffmpeg-static.tar.gz";
-    let ffmpeg_working_directory = PathBuf::from("/tmp/ffmpeg");
-    let scattered_working_directory = PathBuf::from("/tmp/scattered_frames");
-    let processed_working_directory = PathBuf::from("/tmp/processed_frames");
-    let video_working_directory = PathBuf::from("/tmp/video");
-    let local_output_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), output_file.split("/").last().unwrap().clone()));
-    let local_input_file: PathBuf = PathBuf::from(format!("{}/{}", video_working_directory.display(), input_file.split("/").last().unwrap().clone()));
-    let input_uuid = Uuid::new_v4();
-    let output_uuid = Uuid::new_v4();
-    let scatter_regex = if has_image_compression { format!("{}-%07d.jpg", input_uuid) } else { format!("{}-%07d.png", input_uuid) };
-    let process_regex = if has_image_compression { format!("{}-%07d.jpg", output_uuid) } else { format!("{}-%07d.png", output_uuid) };
-    file_mgmt::clean_up(Some(&scattered_working_directory), Some(&processed_working_directory), &video_working_directory);
-    let ffmpeg: FFMpeg = FFMpeg::create(ffmpeg_remote_url, &ffmpeg_working_directory, &client)?;
-    Ok(PreDefines{
-        client: client,
-        scattered_working_directory: scattered_working_directory,
-        processed_working_directory: processed_working_directory,
-        data_api_work_directory: data_work_dir,
-        video_working_directory: video_working_directory,
-        local_input_file: local_input_file,
-        local_output_file: local_output_file,
-        ffmpeg: ffmpeg,
-        scatter_regex: scatter_regex,
-        process_regex: process_regex,
-        batch_size: batch_size,
-        starting_threads: starting_threads as isize,
-        max_threads: max_threads as isize
-    })
 }
 
 #[cfg(test)]
@@ -221,44 +171,3 @@ mod test {
         }
     }
 }
-
-//#[test]
-//fn array_advanced_test() {
-//    let array: Vec<Value> = vec![
-//        Value::String("$SINGLE_INPUT".to_string()),
-//        Value::String("$SINGLE_OUTPUT".to_string()),
-//        Value::Number(200i64.into()),
-//        Value::Number(200i64.into())
-//    ];
-//    let json = json!({
-//    "images": "$BATCH_INPUT",
-//    "savePaths": "$BATCH_OUTPUT",
-//    "filterName" : "far_away",
-//    "advanced_input" : array
-//    });
-//    println!("data: {:?}", &json);
-//    let result = Algo.apply_json(&json);
-//    let test: bool = match result {
-//        Ok(output) => {
-//            match output {
-//                AlgoOutput::Text(text) => {
-//                    println!("text: {}", text);
-//                    true
-//                },
-//                AlgoOutput::Json(json) => {
-//                    println!("json: {}", json);
-//                    true
-//                }
-//                _ => {
-//                    println!("failed");
-//                    false
-//                }
-//            }
-//        },
-//        Err(failure) => {
-//            println!("{}", failure);
-//            false
-//        }
-//    };
-//    assert!(test);
-//}

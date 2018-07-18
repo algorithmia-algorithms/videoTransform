@@ -68,7 +68,7 @@ fn get_cursor<'a>(input: &'a mut Value, path_vec: &mut VecDeque<String>) -> Resu
     if input.is_object() {
         let path = path_vec.pop_front().ok_or(format!("did not exit properly, path contained a json object, not a final node of array or string."))?;
         let b_tree_obj = input.as_object_mut().unwrap();
-        let mut json = b_tree_obj.get_mut(&path).ok_or(format!("path traversal invalid, path not found."))?;
+        let json = b_tree_obj.get_mut(&path).ok_or(format!("path traversal invalid, path not found."))?;
         Ok(get_cursor(json, path_vec)?)
     } else {
         Ok(input)
@@ -81,7 +81,7 @@ pub fn replace_json(base: &mut Value, paths: &mut VecDeque<String>, array_iter: 
     let cursor: &mut Value = get_cursor(base, paths)?;
     //we if check instead of pattern match because we don't want to borrow cursor, for the string branch, since we need to replace the json, not the string.
     if cursor.is_array() {
-        let mut arr: &mut Vec<Value> = cursor.as_array_mut().unwrap();
+        let arr: &mut Vec<Value> = cursor.as_array_mut().unwrap();
         let index = try!(array_iter.ok_or(format!("array iter must be passed if the final node is an array type.")));
         match data {
             Left(batch) => {

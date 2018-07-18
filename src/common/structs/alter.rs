@@ -1,27 +1,7 @@
 use algorithmia::Algorithmia;
 use std::path::*;
 
-
-pub struct Altered {
-    fps: f64,
-    frames_dir: PathBuf,
-    frames: Vec<PathBuf>,
-    frame_regex: String,
-}
-
-impl Altered {
-    pub fn fps(&self) -> f64 {self.fps}
-    pub fn frames(&self) -> &Vec<PathBuf> {self.frames.as_ref()}
-    pub fn frames_dir(&self) -> &Path {self.frames_dir.as_ref()}
-    pub fn regex(&self) -> &str {&self.frame_regex}
-    pub fn new(frames_dir: PathBuf, frames: Vec<PathBuf>, fps: f64, regex: String) -> Altered{
-        Altered {frames_dir: frames_dir,
-            fps: fps, frame_regex: regex,
-            frames: frames}
-    }
-}
-
-
+#[derive(Clone)]
 pub struct Alter {
     client: Algorithmia,
     output_regex: String,
@@ -54,4 +34,21 @@ impl Alter {
     pub fn local_input(&self) -> &Path {self.local_input_directory.as_path()}
     pub fn local_output(&self) -> &Path {self.local_output_directory.as_ref()}
     pub fn remote_working(&self) -> &str {self.remote_working_directory.as_ref()}
+}
+
+pub struct Altered {
+    fps: f64,
+    frames_dir: PathBuf,
+    frames: Vec<PathBuf>,
+    frame_regex: String,
+}
+
+impl Altered {
+    pub fn fps(&self) -> f64 {self.fps}
+    pub fn frames(&self) -> &Vec<PathBuf> {self.frames.as_ref()}
+    pub fn frames_dir(&self) -> &Path {self.frames_dir.as_ref()}
+    pub fn regex(&self) -> &str {&self.frame_regex}
+    pub fn new(frames_dir: PathBuf, frames: Vec<PathBuf>, fps: f64, frame_regex: String) -> Altered{
+        Altered { frames_dir, fps, frame_regex, frames }
+    }
 }

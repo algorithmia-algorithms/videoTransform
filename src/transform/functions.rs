@@ -1,15 +1,9 @@
-use algorithmia::Algorithmia;
-use algorithmia::algo::*;
-use algorithmia::error::ApiError;
 use std::path::*;
 use serde_json::Value;
-use serde_json::Value::*;
-use std::error::Error;
 use std::string::String;
 use common::video_error::VideoError;
-use std::ffi::OsStr;
 use common::structs::prelude::*;
-use common::misc::*;
+use common::algo::{batch_file_path, try_algorithm, batch_upload_file, batch_get_file};
 use std_semaphore::Semaphore;
 use std::sync::Arc;
 use std::ops::Index;

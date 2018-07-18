@@ -1,21 +1,14 @@
 use algorithmia::Algorithmia;
 use std::path::*;
-use common::file_mgmt;
 use rayon::prelude::*;
-use rayon;
-use serde_json::Value;
 use super::functions::{advanced_batch, advanced_single};
 use common::video_error::VideoError;
 use common::watchdog::Watchdog;
 use common::threading::*;
 use common::misc;
 use common::structs::prelude::*;
-use std::sync::{Arc, Mutex, atomic};
-use std::time::SystemTime;
-use std::ops::*;
+use std::sync::Arc;
 use std::io::{self, Write};
-use std_semaphore::Semaphore;
-use std::ascii::AsciiExt;
 
 //used to template all of the default image proc algorithms, uses rayon for multi-threading and uses Arc<Mutex> locking to fail early if an exception is found.
 pub fn default(client: &Algorithmia,
@@ -28,27 +21,23 @@ pub fn default(client: &Algorithmia,
                 max_threads: isize,
                function: &Default<Alter, PathBuf>) -> Result<Altered, VideoError> {
     //generate batches of frames by number, based on the batch size.
-    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(misc::frame_batches(batch_size, data.num_frames()));
+    let frame_batches: Box<Vec<Vec<usize>>> = Box::new(misc::frame_batches_simple(batch_size, data.num_frames()));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
-    let semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
-    let mut early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
-    let mut slowdown = atomic::AtomicBool::new(false);
-    let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
-    let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
-    let formatted_data = Arc::new(Alter::new(client.clone(),
-                                             data.regex().clone(),
-                                             output_regex.clone(),
-                                             local_out_dir.clone(),
-                                             data.frames_dir().clone(),
-                                             remote_dir.clone()));
-    let wd = Watchdog::create(early_terminate.clone(), frame_batches.len());
+
+    let alter = Alter::new(client.clone(),
+                          data.regex().clone(),
+                          output_regex.clone(),
+                          local_out_dir.clone(),
+                          data.frames_dir().clone(),
+                          remote_dir.clone());
+
+    let threadable = Threadable::create(starting_threads, max_threads, alter);
+
+    let wd = Watchdog::create(threadable.arc_term_signal(), frame_batches.len());
     let wd_t = wd.get_comms();
     frame_batches.par_iter().map(move |batch| {
-        let error_lock = early_terminate.clone();
-        let semaphore = semaphore_global.clone();
-        let mut slowdown_signal = slowdown_signal_global.clone();
-        let time = time_global.clone();
-        let res = try_algorithm_default(function, &formatted_data, &batch, semaphore, slowdown_signal, error_lock, time);
+        let thread_t = threadable.clone();
+        let res = try_algorithm_default(function, &batch, thread_t);
         wd_t.send_success_signal();
         res
     }).weight_max().collect_into(&mut result);
@@ -73,36 +62,29 @@ pub fn advanced(client: &Algorithmia,
                 input: AdvancedInput) -> Result<Altered, VideoError> {
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     let search: Arc<AdvancedInput> = Arc::new(input);
-    let mut semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
-    let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
-    let early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
-    let mut slowdown = atomic::AtomicBool::new(false);
-    let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
 
-    let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames()) }
-        else { misc::frame_batches(1, data.num_frames()) };
+    let frame_batches = Box::new(misc::frame_batches_advanced(batch_size, data.num_frames(), search.option()));
 
-    let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
-    let formatted_data = Arc::new(Alter::new(client.clone(),
-                                             data.regex().clone(),
-                                             output_regex.clone(),
-                                             local_out_dir.clone(),
-                                             data.frames_dir().clone(),
-                                             remote_dir.clone()));
-    let wd = Watchdog::create(early_terminate.clone(), frame_batches.len());
+
+    let alter = Alter::new(client.clone(),
+                          data.regex().clone(),
+                          output_regex.clone(),
+                          local_out_dir.clone(),
+                          data.frames_dir().clone(),
+                          remote_dir.clone());
+
+    let threadable = Threadable::create(starting_threads, max_threads, alter);
+    let wd = Watchdog::create(threadable.arc_term_signal(), frame_batches.len());
     let wd_t = wd.get_comms();
     io::stderr().write(b"starting parallel map.\n")?;
     frame_batches.par_iter().map(move |batch| {
-        let lock = early_terminate.clone();
-        let semaphore = semaphore_global.clone();
-        let time = time_global.clone();
-        let mut slowdown_signal = slowdown_signal_global.clone();
+        let thread_t = threadable.clone();
         let res = if search.option() == "batch" {
-            try_algorithm_advanced(&advanced_batch, &formatted_data, &batch,
-                                   algorithm, &search, semaphore, slowdown_signal, lock, time)
+            try_algorithm_advanced(&advanced_batch, &batch,
+                                   algorithm, &search, thread_t)
         } else {
-            try_algorithm_advanced(&advanced_single, &formatted_data, &batch,
-                                   algorithm, &search, semaphore, slowdown_signal, lock, time)
+            try_algorithm_advanced(&advanced_single, &batch,
+                                   algorithm, &search, thread_t)
         };
         wd_t.send_success_signal();
         res
