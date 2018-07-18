@@ -1,5 +1,4 @@
 use algorithmia::Algorithmia;
-//use algorithmia::algo::*;
 use algorithmia::data::*;
 use std::process::Command;
 use common::video_error::VideoError;
@@ -13,22 +12,23 @@ pub struct FFMpeg{
     ffprobe_path: PathBuf,
 }
 
-pub fn new(ffmpeg_remote: &str, ffmpeg_directory: &Path, client: &Algorithmia) -> Result<FFMpeg, VideoError> {
-    let ffmpeg_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "ffmpeg.tar.gz"));
-    let checker_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"));
-    if !checker_file.exists() {
-        let tar_file = file_mgmt::get_file_from_algorithmia(ffmpeg_remote, &ffmpeg_file, client)?;
-        println!("got file.");
-        let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
-        println!("unzipped file.");
-    }
-    Ok(
-        FFMpeg{ffprobe_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffprobe")),
-            ffmpeg_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"))}
-    )
-}
-
 impl FFMpeg {
+
+
+    pub fn create(ffmpeg_remote: &str, ffmpeg_directory: &Path, client: &Algorithmia) -> Result<FFMpeg, VideoError> {
+        let ffmpeg_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "ffmpeg.tar.gz"));
+        let checker_file: PathBuf = PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"));
+        if !checker_file.exists() {
+            let tar_file = file_mgmt::get_file_from_algorithmia(ffmpeg_remote, &ffmpeg_file, client)?;
+            println!("got file.");
+            let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
+            println!("unzipped file.");
+        }
+        Ok(
+            FFMpeg{ffprobe_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffprobe")),
+                ffmpeg_path: PathBuf::from(format!("{}/{}", ffmpeg_directory.display(), "/ffmpeg-static/ffmpeg"))}
+        )
+    }
 
     pub fn ffmpeg(&self) -> &str {self.ffmpeg_path.as_path().to_str().unwrap()}
 

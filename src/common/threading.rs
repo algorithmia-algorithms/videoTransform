@@ -7,11 +7,15 @@ use common::video_error::VideoError;
 use common::structs::advanced_input::AdvancedInput;
 static DURATION: u64 = 5;
 
+pub type Default<T, J> = Fn(&T, Vec<usize>, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync;
+pub type Advanced<T, J> = Fn(&T,Vec<usize>, String, &AdvancedInput, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync;
+pub type CatastrophicError = Arc<Mutex<Option<String>>>;
 
-pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
+
+pub fn try_algorithm_default<T, J>(function: &Default<T, J>,
                                    data: &T, batch: &Vec<usize>, semaphore: Arc<Semaphore>,
-                                    slowdown_signal:  Arc<AtomicBool>,
-                                   catastrophic_error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
+                                   slowdown_signal:  Arc<AtomicBool>,
+                                   catastrophic_error: CatastrophicError, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {
     let current_time = SystemTime::now();
     let slow = slowdown_signal.clone();
     threading_strategizer(time.clone(), current_time, slowdown_signal.clone(), semaphore.clone());
@@ -36,7 +40,7 @@ pub fn try_algorithm_default<T, J>(function: &(Fn(&T, Vec<usize>, Arc<Semaphore>
     }
 }
 
-pub fn try_algorithm_advanced<T, J>(function: &(Fn(&T,Vec<usize>, String, &AdvancedInput, Arc<Semaphore>) -> Result<Vec<J>, VideoError> + Sync),
+pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>,
                                     data: &T, batch: &Vec<usize>, algo: &str,
                                     json: &AdvancedInput, semaphore: Arc<Semaphore>, slowdown_signal: Arc<AtomicBool>,
                                     catastrophic_error: Arc<Mutex<Option<String>>>, time: Arc<Mutex<SystemTime>>) -> Result<Vec<J>, VideoError> {

@@ -5,18 +5,18 @@ use common::structs::prelude::*;
 use super::functions;
 use common::json_utils::combine_data_extract;
 use rayon::prelude::*;
-use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
+use common::threading::*;
 use common::watchdog::Watchdog;
-use std::time::{SystemTime, Duration};
+use std::time::{SystemTime,};
 use serde_json::Value;
 use std::sync::{Arc, Mutex, atomic};
 use std_semaphore::Semaphore;
 use std::ops::*;
 use std::ascii::AsciiExt;
 use common::misc::frame_batches;
-use std::io;
 
 static FPSMAX: f64 = 60f64;
+
 
 pub fn default(client: &Algorithmia,
                data: &Scattered,
@@ -25,7 +25,7 @@ pub fn default(client: &Algorithmia,
                duration: f64,
                starting_threads: isize,
                 max_threads: isize,
-               function: &(Fn(&Extract, Vec<usize>, Arc<Semaphore>) -> Result<Vec<Value>, VideoError> + Sync)) -> Result<Value, VideoError> {
+               function: &Default<Extract, Value>) -> Result<Value, VideoError> {
     //generate batches of frames by number, based on the batch size.
     let frame_stamp: f64 = duration / data.num_frames() as f64;
     let frame_batches: Box<Vec<Vec<usize>>> = Box::new(frame_batches(batch_size, data.num_frames()));
@@ -33,7 +33,7 @@ pub fn default(client: &Algorithmia,
     let mut slowdown = atomic::AtomicBool::new(false);
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
-    let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Extract::new(client.clone(),
                                                data.regex().clone(),
@@ -73,7 +73,7 @@ pub fn advanced(client: &Algorithmia,
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let mut result: Vec<Result<Vec<Value>, VideoError>> = Vec::new();
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
-    let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Extract::new(client.clone(),
                                                data.regex().clone(),

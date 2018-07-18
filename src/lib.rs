@@ -3,7 +3,7 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
-#[macro_use]extern crate crossbeam_channel;
+extern crate crossbeam_channel;
 extern crate regex;
 extern crate rayon;
 extern crate uuid;
@@ -18,10 +18,9 @@ mod common;
 mod extract;
 mod transform;
 mod processing;
-use common::ffmpeg::FFMpeg;
+use common::structs::ffmpeg::FFMpeg;
 use common::misc;
 use common::file_mgmt;
-use common::ffmpeg;
 use common::video_error::VideoError;
 use common::structs::prelude::{Gathered, Scattered};
 
@@ -133,7 +132,7 @@ fn prep(format: RunFormat,
     let scatter_regex = if has_image_compression { format!("{}-%07d.jpg", input_uuid) } else { format!("{}-%07d.png", input_uuid) };
     let process_regex = if has_image_compression { format!("{}-%07d.jpg", output_uuid) } else { format!("{}-%07d.png", output_uuid) };
     file_mgmt::clean_up(Some(&scattered_working_directory), Some(&processed_working_directory), &video_working_directory);
-    let ffmpeg: FFMpeg = ffmpeg::new(ffmpeg_remote_url, &ffmpeg_working_directory, &client)?;
+    let ffmpeg: FFMpeg = FFMpeg::create(ffmpeg_remote_url, &ffmpeg_working_directory, &client)?;
     Ok(PreDefines{
         client: client,
         scattered_working_directory: scattered_working_directory,

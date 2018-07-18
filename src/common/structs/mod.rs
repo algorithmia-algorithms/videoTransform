@@ -4,3 +4,4 @@ pub mod alter;
 pub mod extract;
 pub mod prelude;
 pub mod advanced_input;
+pub mod ffmpeg;

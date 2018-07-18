@@ -1,11 +1,11 @@
 use algorithmia::Algorithmia;
-use common::ffmpeg;
+use common::structs::ffmpeg;
 use std::path::*;
 use common::file_mgmt;
 use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
-use common::ffmpeg::FFMpeg;
+use common::structs::ffmpeg::FFMpeg;
 use common::video_error::VideoError;
 use common::structs::prelude::*;
 use std::sync::{Arc, Mutex};

@@ -7,7 +7,7 @@ use serde_json::Value;
 use super::functions::{advanced_batch, advanced_single};
 use common::video_error::VideoError;
 use common::watchdog::Watchdog;
-use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
+use common::threading::*;
 use common::misc;
 use common::structs::prelude::*;
 use std::sync::{Arc, Mutex, atomic};
@@ -26,12 +26,12 @@ pub fn default(client: &Algorithmia,
                batch_size: usize,
                starting_threads: isize,
                 max_threads: isize,
-               function: &(Fn(&Alter, Vec<usize>, Arc<Semaphore>) -> Result<Vec<PathBuf>, VideoError> + Sync)) -> Result<Altered, VideoError> {
+               function: &Default<Alter, PathBuf>) -> Result<Altered, VideoError> {
     //generate batches of frames by number, based on the batch size.
     let frame_batches: Box<Vec<Vec<usize>>> = Box::new(misc::frame_batches(batch_size, data.num_frames()));
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
     let semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
-    let mut early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
     let mut slowdown = atomic::AtomicBool::new(false);
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
@@ -75,7 +75,7 @@ pub fn advanced(client: &Algorithmia,
     let search: Arc<AdvancedInput> = Arc::new(input);
     let mut semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
-    let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let early_terminate: CatastrophicError = Arc::new(Mutex::new(None));
     let mut slowdown = atomic::AtomicBool::new(false);
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
 
