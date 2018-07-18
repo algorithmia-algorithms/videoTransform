@@ -80,8 +80,8 @@ impl WatchdogComms {
             while cont {
 //                println!("waiting...");
                 match self.watchdog_rx.try_recv() {
-                    Some(val) => {signal = val; cont = false}
-                    None => {thread::sleep(Duration::new(0, 500000000))}
+                    Ok(val) => {signal = val; cont = false}
+                    Err(t) => {thread::sleep(Duration::new(0, 500000000))}
                 }
             }
             if signal == 1 {
