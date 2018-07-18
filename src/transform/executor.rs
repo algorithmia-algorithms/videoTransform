@@ -5,13 +5,11 @@ use rayon::prelude::*;
 use rayon;
 use serde_json::Value;
 use super::functions::{advanced_batch, advanced_single};
-use common::utilities::advanced_input_search_transform;
 use common::video_error::VideoError;
-use common::watchdog;
+use common::watchdog::Watchdog;
 use common::rayon_stuff::{try_algorithm_default, try_algorithm_advanced, prepare_semaphore};
 use common::misc;
 use common::structs::prelude::*;
-use common::json_utils::AdvancedInput;
 use std::sync::{Arc, Mutex, atomic};
 use std::time::SystemTime;
 use std::ops::*;
@@ -43,7 +41,7 @@ pub fn default(client: &Algorithmia,
                                              local_out_dir.clone(),
                                              data.frames_dir().clone(),
                                              remote_dir.clone()));
-    let wd = watchdog::Watchdog::create(early_terminate.clone(), frame_batches.len());
+    let wd = Watchdog::create(early_terminate.clone(), frame_batches.len());
     let wd_t = wd.get_comms();
     frame_batches.par_iter().map(move |batch| {
         let error_lock = early_terminate.clone();
@@ -72,15 +70,18 @@ pub fn advanced(client: &Algorithmia,
                 batch_size: usize,
                 starting_threads: isize,
                 max_threads: isize,
-                input: &Value) -> Result<Altered, VideoError> {
-    let search: Arc<AdvancedInput> = Arc::new(advanced_input_search_transform(input)?);
+                input: AdvancedInput) -> Result<Altered, VideoError> {
     let mut result: Vec<Result<Vec<PathBuf>, VideoError>> = Vec::new();
+    let search: Arc<AdvancedInput> = Arc::new(input);
     let mut semaphore_global: Arc<Semaphore> = prepare_semaphore(starting_threads, max_threads);
     let semaphore_global: Arc<Semaphore> = Arc::new(Semaphore::new(starting_threads));
     let early_terminate: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let mut slowdown = atomic::AtomicBool::new(false);
     let mut slowdown_signal_global: Arc<atomic::AtomicBool> = Arc::new(slowdown);
-    let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames()) } else { misc::frame_batches(1, data.num_frames()) };
+
+    let frame_batches = if search.option() == "batch" { misc::frame_batches(batch_size, data.num_frames()) }
+        else { misc::frame_batches(1, data.num_frames()) };
+
     let time_global: Arc<Mutex<SystemTime>> = Arc::new(Mutex::new(SystemTime::now()));
     let formatted_data = Arc::new(Alter::new(client.clone(),
                                              data.regex().clone(),
@@ -88,7 +89,7 @@ pub fn advanced(client: &Algorithmia,
                                              local_out_dir.clone(),
                                              data.frames_dir().clone(),
                                              remote_dir.clone()));
-    let wd = watchdog::spawn(early_terminate.clone(), frame_batches.len());
+    let wd = Watchdog::create(early_terminate.clone(), frame_batches.len());
     let wd_t = wd.get_comms();
     io::stderr().write(b"starting parallel map.\n")?;
     frame_batches.par_iter().map(move |batch| {

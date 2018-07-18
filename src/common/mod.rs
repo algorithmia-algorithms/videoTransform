@@ -8,4 +8,3 @@ pub mod misc;
 pub mod json_utils;
 pub mod rayon_stuff;
 pub mod watchdog;
-pub mod utilities;

@@ -4,7 +4,7 @@ use std_semaphore::Semaphore;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use common::video_error::VideoError;
-use common::json_utils::AdvancedInput;
+use common::structs::advanced_input::AdvancedInput;
 static DURATION: u64 = 5;
 
 

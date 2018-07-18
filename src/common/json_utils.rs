@@ -5,36 +5,6 @@ use common::video_error::VideoError;
 use either::{Either, Left, Right};
 use std::ops::{Index, IndexMut};
 
-static BATCH_INPUT: &'static str = "$BATCH_INPUT";
-static SINGLE_INPUT: &'static str = "$SINGLE_INPUT";
-static BATCH_OUTPUT: &'static str = "$BATCH_OUTPUT";
-static SINGLE_OUTPUT: &'static str = "$SINGLE_OUTPUT";
-
-
-#[derive(Debug, Clone)]
-pub struct AdvancedInput {
-    batch_single: String,
-    in_path: VecDeque<String>,
-    in_array_iter: Option<usize>,
-    out_path: VecDeque<String>,
-    out_array_iter: Option<usize>,
-    source: Value,
-}
-
-impl AdvancedInput {
-    pub fn new (batch_single: String, in_path: VecDeque<String>, in_array_iter: Option<usize>,
-                out_path: VecDeque<String>, out_array_iter: Option<usize>, source: Value) -> AdvancedInput {
-        AdvancedInput {batch_single: batch_single, in_path: in_path,
-            in_array_iter: in_array_iter, out_array_iter: out_array_iter,
-            out_path: out_path, source: source}
-    }
-    pub fn option(&self) -> &str {&self.batch_single}
-    pub fn in_path(&self) -> &VecDeque<String> {&self.in_path}
-    pub fn in_array_iter(&self) -> Option<usize> {self.in_array_iter}
-    pub fn out_path(&self) -> &VecDeque<String> {&self.out_path}
-    pub fn out_array_iter(&self) -> Option<usize> {self.out_array_iter}
-    pub fn source(&self) -> &Value {&self.source}
-}
 
 //depth first search of json blob, returns true if the keyword was found, false if it wasn't.
 pub fn search_json(json: &Value, path: &mut VecDeque<String>, keyword: &str) -> Result<(bool, Option<usize>), VideoError> {
@@ -138,4 +108,22 @@ pub fn replace_json(base: &mut Value, paths: &mut VecDeque<String>, array_iter: 
         }
         Ok(())
     } else { Err(format!("something went wrong, you should never get here.").into()) }
+}
+
+//takes an array of json blobs & a frame stamp, returns a json object with an array of json objects containing the frame's timestamp & data.
+pub fn combine_data_extract(data: &Vec<Value>, frame_stamp: f64) -> Result<Value, VideoError> {
+    let mut combined: Vec<Value> = Vec::new();
+    for iter in 0..data.len() {
+        let ref value: Value = data[iter];
+        let time_s: f64 = iter as f64 * frame_stamp;
+        let json = json!({
+            "timestamp": time_s,
+            "data": value.clone()
+        });
+        combined.push(json);
+    }
+    let finale = json!({
+    "frame_data" : combined
+    });
+    Ok(finale)
 }

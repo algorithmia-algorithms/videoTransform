@@ -43,7 +43,7 @@ pub fn scatter(ffmpeg: &FFMpeg,
                 }
         }
     };
-    let duration:f64 = try!(ffmpeg.get_video_duration(video_file));
+    let duration:f64 = ffmpeg.get_video_duration(video_file)?;
     let num_frames: u64 = (duration*output_fps).ceil() as u64;
     if num_frames <= MAX_FRAMES {
         let result = ffmpeg.split_video(video_file, frame_dir, &regex, output_fps, &compression_factor)?;
@@ -89,7 +89,8 @@ pub fn transform(client: &Algorithmia,
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
-            transform::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, starting_threads, max_threads, advanced_input)
+            let search: AdvancedInput = AdvancedInput::create_transform(advanced_input)?;
+            transform::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, starting_threads, max_threads, search)
         }
         //no custom json input, so we use defaults.
         None => {
@@ -124,7 +125,8 @@ pub fn extract(client: &Algorithmia,
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
-            extract::executor::advanced(client, data, remote_dir, algorithm, batch_size, duration, starting_threads, max_threads, advanced_input)
+            let search: AdvancedInput = AdvancedInput::create_extract(advanced_input)?;
+            extract::executor::advanced(client, data, remote_dir, algorithm, batch_size, duration, starting_threads, max_threads, search)
         }
         //no custom json input, so we use defaults.
         None => {
