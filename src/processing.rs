@@ -7,6 +7,7 @@ use common::structs::ffmpeg::FFMpeg;
 use common::video_error::VideoError;
 use common::structs::prelude::*;
 use uuid::Uuid;
+use std::ascii::AsciiExt;
 
 //import all packages
 use transform;
