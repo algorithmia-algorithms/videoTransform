@@ -90,9 +90,10 @@ pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>, batch: &Vec<usize
                                     json: &AdvancedInput, threadable: Threadable<T>) -> Result<Vec<J>, VideoError> where T: Clone {
     let current_time = SystemTime::now();
     threading_strategizer(&threadable, current_time);
-    if let Some(ref err) = &threadable.check_term_signal().deref() {
+    if let Some(ref err) = threadable.check_term_signal().deref() {
         return Err(err.to_string().into())
     }
+    
     match function(&threadable.arc_data(), batch.clone(), algo.to_string(), &json, threadable.arc_semaphore()) {
         Ok(result) => {
             Ok(result)
