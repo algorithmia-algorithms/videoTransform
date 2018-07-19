@@ -53,7 +53,7 @@ impl WatchdogComms {
     }
 
     pub fn send_success_signal(&self) -> () {
-        self.watchdog_tx.lock().unwrap().send(1);
+        let _ = self.watchdog_tx.lock().unwrap().send(1);
     }
 
 
