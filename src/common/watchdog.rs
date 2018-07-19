@@ -1,8 +1,8 @@
 
 use std::time::{Duration, SystemTime};
 use std::sync::{Arc, Mutex};
-use crossbeam_channel::{Sender, Receiver};
-use crossbeam_channel as channel;
+use std::sync::mpsc::{Receiver, Sender, channel};
+use common::threading::Lockstep;
 use std::thread;
 use std::thread::JoinHandle;
 //use common::video_error::VideoError;
@@ -10,13 +10,13 @@ use std::thread::JoinHandle;
 static MAX_TIME: f64 = 3000f64;
 static ADJUSTMENT_TIME: f64 = 60f64;
 
+#[derive(Clone)]
 pub struct WatchdogComms {
-    watchdog_rx: Receiver<usize>,
-    watchdog_tx: Sender<usize>,
-    terminate_tx: Arc<Mutex<Option<String>>>,
+    watchdog_rx: Lockstep<Receiver<usize>>,
+    watchdog_tx: Lockstep<Sender<usize>>,
+    terminate_tx: Lockstep<Option<String>>,
     total_jobs: usize,
 }
-
 
 pub struct Watchdog {
     watchdog_comms: WatchdogComms,
@@ -24,7 +24,7 @@ pub struct Watchdog {
 }
 
 impl Watchdog {
-    pub fn create(term_obj: Arc<Mutex<Option<String>>>, total_jobs: usize) -> Watchdog {
+    pub fn create(term_obj: Lockstep<Option<String>>, total_jobs: usize) -> Watchdog {
         let wdc = WatchdogComms::create(term_obj, total_jobs);
         let wdcc = wdc.clone();
         println!("starting up watchdog thread.");
@@ -39,29 +39,23 @@ impl Watchdog {
     }
 
     pub fn terminate(self) -> () {
-        self.watchdog_comms.watchdog_tx.send(0);
+        self.watchdog_comms.watchdog_tx.lock().unwrap().send(0);
         let _ = self.callback.join();
     }
 }
 
 impl WatchdogComms {
-    fn create(term_obj: Arc<Mutex<Option<String>>>, total_jobs: usize) -> WatchdogComms {
-        let (s, r) = channel::unbounded();
-        WatchdogComms { watchdog_rx:r, watchdog_tx:s, terminate_tx: term_obj, total_jobs: total_jobs}
+    fn create(term_obj: Lockstep<Option<String>>, total_jobs: usize) -> WatchdogComms {
+        let (s, r) = channel();
+        let locked_s = Arc::new(Mutex::new(s));
+        let locked_r = Arc::new(Mutex::new(r));
+        WatchdogComms { watchdog_rx:locked_r, watchdog_tx:locked_s, terminate_tx: term_obj, total_jobs: total_jobs}
     }
 
     pub fn send_success_signal(&self) -> () {
-        self.watchdog_tx.send(1);
+        self.watchdog_tx.lock().unwrap().send(1);
     }
 
-    fn clone(&self) -> WatchdogComms {
-        WatchdogComms {
-            watchdog_rx: self.watchdog_rx.clone(),
-            watchdog_tx: self.watchdog_tx.clone(),
-            terminate_tx: self.terminate_tx.clone(),
-            total_jobs: self.total_jobs,
-        }
-    }
 
     fn watchdog_thread_inner(&self) -> () {
 
@@ -79,7 +73,7 @@ impl WatchdogComms {
             let mut cont = true;
             while cont {
 //                println!("waiting...");
-                match self.watchdog_rx.try_recv() {
+                match self.watchdog_rx.lock().unwrap().try_recv() {
                     Ok(val) => {signal = val; cont = false}
                     Err(t) => {thread::sleep(Duration::new(0, 500000000))}
                 }

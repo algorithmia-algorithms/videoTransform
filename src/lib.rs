@@ -3,7 +3,6 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
-extern crate crossbeam_channel;
 extern crate regex;
 extern crate rayon;
 extern crate uuid;
