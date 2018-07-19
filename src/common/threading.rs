@@ -66,7 +66,7 @@ impl<J> Threadable<J> where J: Clone {
 pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>, threadable: Threadable<T>) -> Result<Vec<J>, VideoError> where T: Clone {
     let current_time = SystemTime::now();
     threading_strategizer(&threadable, current_time);
-    if let Some(ref err) = threadable.check_term_signal().deref() {
+    if let &Some(ref err) = threadable.check_term_signal().deref() {
         return Err(err.to_string().into())
     }
     match function(&threadable.arc_data(), batch.clone(), threadable.arc_semaphore()) {
