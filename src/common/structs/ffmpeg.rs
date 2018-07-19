@@ -21,7 +21,7 @@ impl FFMpeg {
         if !checker_file.exists() {
             let tar_file = algo::get_file_from_algorithmia(ffmpeg_remote, &ffmpeg_file, client)?;
             println!("got file.");
-            let unzip = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
+            let _ = try!(Command::new("tar").args(&["-C", ffmpeg_directory.to_str().unwrap(), "-xf", &tar_file.to_str().unwrap()]).output());
             println!("unzipped file.");
         }
         Ok(
