@@ -78,6 +78,7 @@ pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>,
                 threadable.slow_down();
                 try_algorithm_default(function, batch, threadable)
             } else {
+                println!(format!("algorithm hard failure: {}", &err));
                 let terminate_msg: String = format!("algorithm thread failed, ending early: \n{}", err);
                 threadable.set_err(terminate_msg.clone());
                 Err(terminate_msg.into())
