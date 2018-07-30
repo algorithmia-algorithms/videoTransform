@@ -2,7 +2,6 @@ use algorithmia;
 use std;
 use rayon;
 use serde_json;
-//use std::sync::PoisonError;
 use std::time;
 quick_error!{
     #[derive(Debug)]
@@ -55,9 +54,9 @@ quick_error!{
     }
 }
 //
-//impl fmt::Display for VideoError{
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "{}", self.0)
-//    }
-//}
+impl Clone for VideoError{
+    fn clone(&self) -> VideoError {
+        self.clone()
+    }
+}
 

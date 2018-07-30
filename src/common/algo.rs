@@ -21,7 +21,7 @@ pub fn get_file(url: &str, local_path: &Path, remote_scratch: &str, client: &Alg
     let remote_file= format!("{}/temp.mp4", remote_scratch);
     let prefix: &str = tmp_url.split("://").next().unwrap().clone();
     let mut attempts = 0;
-    let mut output;
+    let output;
     loop {
         let result = if prefix == "http" || prefix == "https" {
             get_file_from_html(url, local_path, &remote_file, client)
@@ -73,7 +73,9 @@ pub fn get_file_from_algorithmia(url: &str, local_path: &Path, client: &Algorith
                 thread::sleep(Duration::from_millis((1000 * attempts) as u64));
                 attempts += 1;
             }
-            Err(error) => return Err(format!("recieved an error trying to download {}\n{}", url, error).into())
+            Err(error) => {
+                return Err(format!("recieved an error trying to download {}\n{}", url, error).into())
+            }
         }
         if attempts > MAX_ATTEMPTS_DATA {
             return Err(format!("failed {} times to download file {}", attempts, url).into())

@@ -108,11 +108,12 @@ mod test {
     #[test]
     fn basic_test() {
         let raw = json!({
-    "input_file" : "data://zeryx/Video/2016-10-31_11-28-11.mp4",
-    "output_file" : "data://quality/Videos/kenny_filtered.mp4",
-    "algorithm":"algo://deeplearning/DeepFilter",
-    "fps":29,
-    "video_compression" : 30,
+    "input_file" : "data://jpeck/deleteme/PARTISAN540.mp4",
+    "output_file" : "data://quality/Videos/PARTISAN540color2fps.mp4",
+    "algorithm":"algo://deeplearning/ColorfulImageColorization",
+    "advanced_input": {"image": "$SINGLE_INPUT", "location": "$SINGLE_OUTPUT"},
+    "fps":2,
+//    "video_compression" : 30,
 //    "image_compression" : 20
     });
         println!("data: {:?}", &raw);

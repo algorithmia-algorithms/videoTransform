@@ -16,8 +16,8 @@ pub fn search_json(json: &Value, path: &mut VecDeque<String>, keyword: &str) -> 
                 &Value::String(ref text) if text == keyword => {
                     return Ok((true, None))
                 }
-                &Value::Object(ref cursor) => {
-                    let (found, iter) = try!(search_json(&v, path, keyword));
+                &Value::Object(_) => {
+                    let (found, iter) = search_json(&v, path, keyword)?;
                     if found {
                         return Ok((found, iter))
                     }

@@ -3,7 +3,7 @@ use std::ops::*;
 use std_semaphore::Semaphore;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicBool, Ordering};
-use common::video_error::VideoError;
+use common::video_error::*;
 use common::structs::advanced_input::AdvancedInput;
 static DURATION: u64 = 5;
 
@@ -15,7 +15,7 @@ pub type Lockstep<T> = Arc<Mutex<T>>;
 pub struct Threadable<J> where J:Clone{
     slowdown_signal: Arc<AtomicBool>,
     semaphore: Arc<Semaphore>,
-    termination_signal: Lockstep<Option<String>>,
+    termination_signal: Lockstep<Option<VideoError>>,
     time: Lockstep<SystemTime>,
     readonly_data: Arc<J>
 }
@@ -25,7 +25,7 @@ impl<J> Threadable<J> where J: Clone {
         let slowdown = AtomicBool::new(false);
         let slowdown_signal: Arc<AtomicBool> = Arc::new(slowdown);
         let semaphore: Arc<Semaphore> = prepare_semaphore(starting_th, max_th);
-        let termination_signal: Lockstep<Option<String>> = Arc::new(Mutex::new(None));
+        let termination_signal: Lockstep<Option<VideoError>> = Arc::new(Mutex::new(None));
         let time: Lockstep<SystemTime> = Arc::new(Mutex::new(SystemTime::now()));
         let data = Arc::new(data);
         Threadable{slowdown_signal: slowdown_signal, semaphore:semaphore,
@@ -36,62 +36,71 @@ impl<J> Threadable<J> where J: Clone {
 //    fn arc_time(&self) -> Lockstep<SystemTime> {self.time.clone()}
     fn arc_slow_signal(&self) -> Arc<AtomicBool> {self.slowdown_signal.clone()}
     fn arc_data(&self) -> Arc<J> {self.readonly_data.clone()}
-    pub fn arc_term_signal(&self) -> Lockstep<Option<String>> {self.termination_signal.clone()}
+    pub fn arc_term_signal(&self) -> Lockstep<Option<VideoError>> {self.termination_signal.clone()}
 
     fn acquire_time(&self) -> MutexGuard<SystemTime> {
         self.time.lock().unwrap()
     }
-
     fn acquire_slow_signal(&self) -> &AtomicBool {self.slowdown_signal.deref()}
-
     fn slow_down(&self) -> () {
         (*self.slowdown_signal).store(true, Ordering::Relaxed);
     }
-
     fn set_time(&self, time: SystemTime) -> () {
         *self.time.lock().unwrap() = time;
     }
-
-    fn check_term_signal(&self) -> MutexGuard<Option<String>> {
+    fn check_term_signal(&self) -> MutexGuard<Option<VideoError>> {
         self.termination_signal.lock().unwrap()
     }
-    fn set_err(&self, message: String) -> () {
+    fn set_term_signal(&self, message: VideoError) -> () {
         let mut terminate = self.termination_signal.lock().unwrap();
         *terminate = Some(message);
     }
+    pub fn extract_term_signal(&self) -> Option<VideoError> {
+        let c = self.termination_signal.lock().unwrap().clone();
+        if c.is_some() {
+            Some(c.unwrap())
+        } else {
+            None
+        }
+    }
+
 
 }
 
 
-pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>, threadable: Threadable<T>) -> Result<Vec<J>, VideoError> where T: Clone {
+pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>, threadable: Threadable<T>) -> Result<Vec<J>, ()> where T: Clone {
     let current_time = SystemTime::now();
     threading_strategizer(&threadable, current_time);
     if let &Some(ref err) = threadable.check_term_signal().deref() {
-        return Err(err.to_string().into())
+        return Err(())
     }
     match function(&threadable.arc_data(), batch.clone(), threadable.arc_semaphore()) {
         Ok(result) => {
             Ok(result)
         },
         Err(err) => {
+//            println!(err);
             if err.to_string().contains("algorithm hit max number of active calls per session") {
                 threadable.slow_down();
                 try_algorithm_default(function, batch, threadable)
+            } else if threadable.check_term_signal().deref().is_none() {
+                let terminate_err = VideoError::MsgError(format!("algorithm thread failed, ending early: \n{}", err).into());
+                threadable.set_term_signal(terminate_err);
+                Err(())
             } else {
-                let terminate_msg: String = format!("algorithm thread failed, ending early: \n{}", err);
-                threadable.set_err(terminate_msg.clone());
-                Err(terminate_msg.into())
-            }
+                    println!("already received an error!");
+                    Err(())
+                }
         }
     }
 }
 
 pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>, batch: &Vec<usize>, algo: &str,
-                                    json: &AdvancedInput, threadable: Threadable<T>) -> Result<Vec<J>, VideoError> where T: Clone {
+                                    json: &AdvancedInput, threadable: Threadable<T>) -> Result<Vec<J>, ()> where T: Clone {
     let current_time = SystemTime::now();
     threading_strategizer(&threadable, current_time);
     if let &Some(ref err) = threadable.check_term_signal().deref() {
-        return Err(err.to_string().into())
+        return Err(())
     }
 
     match function(&threadable.arc_data(), batch.clone(), algo.to_string(), &json, threadable.arc_semaphore()) {
@@ -99,13 +108,17 @@ pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>, batch: &Vec<usize
             Ok(result)
         },
         Err(err) => {
+//            println!(&err);
             if err.to_string().contains("algorithm hit max number of active calls per session") {
                 threadable.slow_down();
                 try_algorithm_advanced(function,  batch, algo, json,threadable)
+            } else if threadable.check_term_signal().deref().is_none() {
+                let terminate_err = VideoError::MsgError(format!("algorithm thread failed, ending early: \n{}", err).into());
+                threadable.set_term_signal(terminate_err);
+                Err(())
             } else {
-                let terminate_msg: String = format!("algorithm thread failed, ending early: \n{}", err);
-                threadable.set_err(terminate_msg.clone());
-                Err(terminate_msg.into())
+                println!("already received an error!");
+                Err(())
             }
         }
     }
