@@ -35,7 +35,7 @@ pub fn default(
             wd_t.send_success_signal();
         }
         res
-    }).weight_max().collect_into(&mut result);
+    }).weight(1f64).collect_into(&mut result);
     wd.terminate();
     let signal = global_threadable.extract_term_signal();
     match signal {
@@ -81,7 +81,7 @@ pub fn advanced(data: Alter,
             wd_t.send_success_signal();
         }
         res
-    }).weight_max().collect_into(&mut result);
+    }).weight(1f64).collect_into(&mut result);
     wd.terminate();
     println!("exited parallel map.");
     let signal = global_threadable.extract_term_signal();

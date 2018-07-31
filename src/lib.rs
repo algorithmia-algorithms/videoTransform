@@ -1,28 +1,36 @@
-#[macro_use] extern crate algorithmia;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate quick_error;
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_json;
+#[macro_use]
+extern crate algorithmia;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate quick_error;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 extern crate regex;
 extern crate rayon;
 extern crate uuid;
 extern crate either;
 extern crate std_semaphore;
+
 use algorithmia::prelude::*;
 use serde_json::Value;
 use serde_json::Number;
 use std::path::*;
+
 mod common;
 mod extract;
 mod transform;
 mod processing;
+
 use common::algo::{early_exit, get_file, upload_file};
 use common::misc::json_to_file;
 use common::structs::prelude::{Gathered, Scattered};
 use common::preprocess::{PreDefines, ExecutionStyle};
 
 #[derive(Debug, Deserialize)]
-pub struct Entry{
+pub struct Entry {
     input_file: String,
     output_file: String,
     algorithm: String,
@@ -33,7 +41,7 @@ pub struct Entry{
 }
 
 #[derive(Debug, Serialize)]
-struct Exit{
+struct Exit {
     output_file: String
 }
 
@@ -44,7 +52,7 @@ algo_entrypoint!(Entry => Algo::helper);
 
 enum Objective {
     Transform,
-    Extract
+    Extract,
 }
 
 
@@ -53,11 +61,11 @@ impl Algo {
         let batch_size = 5;
         let starting_threads = 5;
         let max_threads = 35;
-        let format = ExecutionStyle::Algo;
+        let format = ExecutionStyle::ProdLocal;
         let objective = Objective::Transform;
         let parameters: PreDefines = PreDefines::create(format, batch_size, starting_threads, max_threads,
-                                          &entry.output_file, &entry.input_file,
-                                          entry.image_compression.clone().is_some())?;
+                                                        &entry.output_file, &entry.input_file,
+                                                        entry.image_compression.clone().is_some())?;
 
         let fps: Option<f64> = entry.fps.map(|num: Number| { num.as_f64() }).and_then(|x| x);
         let image_compression: Option<u64> = entry.image_compression.map(|num: Number| { num.as_u64() }).and_then(|x| x);
@@ -105,23 +113,24 @@ mod test {
     use super::algorithmia::prelude::*;
     use std::borrow::Cow;
 
+
     #[test]
     fn basic_test() {
         let raw = json!({
-    "input_file" : "data://jpeck/deleteme/PARTISAN540.mp4",
-    "output_file" : "data://quality/Videos/PARTISAN540color2fps.mp4",
+    "input_file" : "data://media/videos/kigsman.mkv",
+    "output_file" : "data://quality/Videos/kingsman.mkv",
     "algorithm":"algo://deeplearning/ColorfulImageColorization",
     "advanced_input": {"image": "$SINGLE_INPUT", "location": "$SINGLE_OUTPUT"},
-    "fps":2,
+    "fps":0.75,
 //    "video_compression" : 30,
-//    "image_compression" : 20
+    "image_compression" : 20
     });
         println!("data: {:?}", &raw);
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
         match result {
-            Ok(_)=> {println!("completed success");}
-            Err(ref err) => {println!("errored: {}", err);}
+            Ok(_) => { println!("completed success"); }
+            Err(ref err) => { println!("errored: {}", err); }
         }
     }
 
@@ -144,8 +153,8 @@ mod test {
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
         match result {
-            Ok(_)=> {println!("completed success");}
-            Err(ref err) => {println!("errored: {}", err);}
+            Ok(_) => { println!("completed success"); }
+            Err(ref err) => { println!("errored: {}", err); }
         }
     }
 
@@ -166,8 +175,8 @@ mod test {
         let json = AlgoInput::Json(Cow::Owned(raw));
         let result = Algo::default().apply(json);
         match result {
-            Ok(_)=> {println!("completed success");}
-            Err(ref err) => {println!("errored: {}", err);}
+            Ok(_) => { println!("completed success"); }
+            Err(ref err) => { println!("errored: {}", err); }
         }
     }
 }
