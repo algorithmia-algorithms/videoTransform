@@ -97,7 +97,10 @@ impl<J> Threadable<J> where J: Clone {
 
 pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>, threadable: &Threadable<T>) -> Result<Vec<J>, ()> where T: Clone {
     let current_time = SystemTime::now();
-    threading_strategizer(&threadable, current_time);
+    match threading_strategizer(&threadable, current_time) {
+        Ok(()) => {}
+        Err(err) => {threadable.set_term_signal(err)}
+    };
     if let &Some(ref err) = threadable.check_term_signal().deref() {
         return Err(())
     }
@@ -125,7 +128,10 @@ pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>,
 pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>, batch: &Vec<usize>, algo: &str,
                                     json: &AdvancedInput, threadable: &Threadable<T>) -> Result<Vec<J>, ()> where T: Clone {
     let current_time = SystemTime::now();
-    threading_strategizer(&threadable, current_time);
+    match threading_strategizer(&threadable, current_time) {
+        Ok(()) => {}
+        Err(err) => {threadable.set_term_signal(err)}
+    };
     if let &Some(ref err) = threadable.check_term_signal().deref() {
         println!("failing early, already got an error");
         return Err(())
@@ -160,8 +166,8 @@ pub fn prepare_semaphore(starting_threads: isize, max_threads: isize) -> Arc<Sem
     Arc::new(semaphore)
 }
 
-fn threading_strategizer<J>(threadable: &Threadable<J>, current: SystemTime) -> () where J: Clone {
-    let time_diff: Duration = current.duration_since(threadable.acquire_time().clone()).unwrap();
+fn threading_strategizer<J>(threadable: &Threadable<J>, current: SystemTime) -> Result<(), VideoError> where J: Clone {
+    let time_diff: Duration = current.duration_since(threadable.acquire_time().clone())?;
     // println!("time difference is... {}", time_diff.as_secs());
     if time_diff.as_secs() > DURATION {
         threadable.set_time(current);
@@ -178,4 +184,5 @@ fn threading_strategizer<J>(threadable: &Threadable<J>, current: SystemTime) -> 
         //maybe we don't want to reset this to
         slow.store(false, Ordering::Relaxed);
     }
+    Ok(())
 }
