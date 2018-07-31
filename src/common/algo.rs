@@ -17,21 +17,14 @@ static MAX_ATTEMPTS_DATA: usize = 7;
 static MAX_ATTEMPTS_ALGO: usize = 5;
 
 //gets any remote file, http/https or data connector
-pub fn get_file_parallel(url: &str, local_path: &Path, remote_scratch: &str, client: &Algorithmia,
+pub fn get_file_parallel(url: &str, local_path: &Path, client: &Algorithmia,
                          error_poll: Terminator) -> Result<PathBuf, VideoError> {
-    let tmp_url = url.clone();
-    let remote_file= format!("{}/temp.mp4", remote_scratch);
-    let prefix: &str = tmp_url.split("://").next().unwrap().clone();
     let mut attempts = 0;
     let output;
     loop {
         if error_poll.check_signal().is_some() {return Err(format!("already receieved an error.").into())}
             else {
-                let result = if prefix == "http" || prefix == "https" {
-                    get_file_from_html(url, local_path, &remote_file, client)
-                } else {
-                    get_file_from_algorithmia(url, local_path, client)
-                };
+                let result = get_file_from_algorithmia(url, local_path, client);
                 if result.is_ok() {
                     output = result.unwrap();
                     break;
@@ -188,11 +181,11 @@ pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
 }
 
 pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_locations: &Vec<String>,
-                      client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
+                      client: &Algorithmia, error_poll: Terminator) -> Result<Vec<PathBuf>, VideoError>
 {
     let mut output: Vec<PathBuf> = Vec::new();
     for (local_file, remote_file) in local_file_save_locations.iter().zip(remote_file_get_locations.iter()) {
-        output.push(get_file_from_algorithmia(&remote_file, &local_file, client)?);
+        output.push(get_file_parallel(&remote_file, &local_file, client, error_poll.clone())?);
     }
     Ok(output)
 }

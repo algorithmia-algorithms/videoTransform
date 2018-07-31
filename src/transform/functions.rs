@@ -36,7 +36,7 @@ pub fn deep_filter(input: &Threadable<Alter>, batch: Vec<usize>) -> Result<Vec<P
     semaphore.release();
     //    println!("releasing semaphore");
     let downloaded = batch_get_file(&local_post_frames,
-                                    &remote_post_frames, data.client())?;
+                                    &remote_post_frames, data.client(), input.arc_term_signal())?;
     Ok(downloaded)
 }
 
@@ -65,7 +65,8 @@ pub fn salnet(input: &Threadable<Alter>, batch: Vec<usize>) -> Result<Vec<PathBu
         try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
         semaphore.release();
     }
-    let downloaded = batch_get_file(&local_post_frames, &remote_post_frames, data.client())?;
+    let downloaded = batch_get_file(&local_post_frames,
+                                    &remote_post_frames, data.client(), input.arc_term_signal())?;
     Ok(downloaded)
 }
 
@@ -92,7 +93,8 @@ pub fn colorful_colorization(input: &Threadable<Alter>, batch: Vec<usize>) -> Re
     semaphore.acquire();
     try_algorithm(data.client(), &algorithm, &json,input.arc_term_signal())?;
     semaphore.release();
-    let downloaded = batch_get_file(&local_post_frames, &remote_post_frames, data.client())?;
+    let downloaded = batch_get_file(&local_post_frames, &remote_post_frames,
+                                    data.client(), input.arc_term_signal())?;
     Ok(downloaded)
 }
 
@@ -117,7 +119,8 @@ pub fn advanced_batch(input: &Threadable<Alter>, batch: Vec<usize>, algorithm: S
     try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
     semaphore.release();
 
-    let downloaded = batch_get_file(&local_post_frames, &remote_post_frames, data.client())?;
+    let downloaded = batch_get_file(&local_post_frames,
+                                    &remote_post_frames, data.client(), input.arc_term_signal())?;
     Ok(downloaded)
 }
 
@@ -142,6 +145,7 @@ pub fn advanced_single(input: &Threadable<Alter>, batch: Vec<usize>, algorithm: 
         try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
     }
     semaphore.release();
-    let downloaded = batch_get_file(&local_post_frames, &remote_post_frames, data.client())?;
+    let downloaded = batch_get_file(&local_post_frames,
+                                    &remote_post_frames, data.client(), input.arc_term_signal())?;
     Ok(downloaded)
 }
