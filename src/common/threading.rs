@@ -37,6 +37,8 @@ impl Terminator {
     pub fn set_signal(&self, error: VideoError) -> () {
         if self.check_signal().is_none() {
             *self.signal.lock().unwrap() = Some(error)
+        } else {
+            println!("signal already set, ignoring the set request.")
         }
     }
 
