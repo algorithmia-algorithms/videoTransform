@@ -5,7 +5,7 @@ use std::io::{BufWriter, Write};
 use std::fs::File;
 use serde_json::to_string;
 
-pub fn frame_batches_advanced(batch_size: usize, number_of_frames: usize, option: &str) -> Vec<Vec<usize>> {
+pub fn frame_batches_advanced(batch_size: usize, number_of_frames: usize, option: &str) -> Box<Vec<Vec<usize>>> {
     match option {
         "batch" => {
             frame_batches_simple(batch_size, number_of_frames)
@@ -16,9 +16,9 @@ pub fn frame_batches_advanced(batch_size: usize, number_of_frames: usize, option
     }
 }
 
-pub fn frame_batches_simple(batch_size: usize, number_of_frames: usize) -> Vec<Vec<usize>> {
+pub fn frame_batches_simple(batch_size: usize, number_of_frames: usize) -> Box<Vec<Vec<usize>>> {
     let array: Vec<usize> = (1..number_of_frames).collect::<Vec<usize>>();
-    array.chunks(batch_size).map(|chunk| { chunk.iter().cloned().collect() }).collect::<Vec<Vec<usize>>>()
+    Box::new(array.chunks(batch_size).map(|chunk| { chunk.iter().cloned().collect() }).collect::<Vec<Vec<usize>>>())
 }
 
 pub fn json_to_file(json: &Value, json_path: &Path) -> Result<PathBuf, VideoError> {

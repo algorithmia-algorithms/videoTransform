@@ -4,6 +4,7 @@ use algorithmia::algo::*;
 use common::video_error::VideoError;
 use std::thread;
 use common::file_mgmt::{from_regex, create_directory};
+use common::threading::*;
 use algorithmia::data::{FileData, HasDataPath};
 use std::time::Duration;
 use std::io::copy;
@@ -16,9 +17,67 @@ static MAX_ATTEMPTS_DATA: usize = 7;
 static MAX_ATTEMPTS_ALGO: usize = 5;
 
 //gets any remote file, http/https or data connector
-pub fn get_file(url: &str, local_path: &Path, remote_scratch: &str, client: &Algorithmia) -> Result<PathBuf, VideoError> {
+pub fn get_file_parallel(url: &str, local_path: &Path, remote_scratch: &str, client: &Algorithmia,
+                         error_poll: Terminator) -> Result<PathBuf, VideoError> {
     let tmp_url = url.clone();
     let remote_file= format!("{}/temp.mp4", remote_scratch);
+    let prefix: &str = tmp_url.split("://").next().unwrap().clone();
+    let mut attempts = 0;
+    let output;
+    loop {
+        if error_poll.check_signal().is_some() {return Err(format!("already receieved an error.").into())}
+            else {
+                let result = if prefix == "http" || prefix == "https" {
+                    get_file_from_html(url, local_path, &remote_file, client)
+                } else {
+                    get_file_from_algorithmia(url, local_path, client)
+                };
+                if result.is_ok() {
+                    output = result.unwrap();
+                    break;
+                } else if attempts > MAX_ATTEMPTS_DATA {
+                    let err = result.err().unwrap();
+                    return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
+                } else {
+                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                    println!("failed {} times to download file\n{}", attempts, url.to_string());
+                    attempts += 1;
+                }
+            }
+    }
+    Ok(output)
+}
+
+
+pub fn upload_file_parallel(url_dir: &str, local_file: &Path, client: &Algorithmia,
+                            error_poll: Terminator) -> Result<String, VideoError> {
+    if local_file.exists() {
+        let mut attempts = 0;
+        loop {
+            if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) } else {
+                let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
+                let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
+                if response.is_ok() {
+                    let _ = response.unwrap();
+                    break;
+                } else if attempts > MAX_ATTEMPTS_DATA {
+                    let err = response.err().unwrap();
+                    return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+                } else {
+                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                    attempts += 1;
+                }
+            }
+        }
+        Ok(url_dir.to_string())
+    } else {
+        Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())
+    }
+}
+
+pub fn get_file(url: &str, local_path: &Path, remote_scratch: &str, client: &Algorithmia) -> Result<PathBuf, VideoError> {
+    let tmp_url = url.clone();
+    let remote_file = format!("{}/temp.mp4", remote_scratch);
     let prefix: &str = tmp_url.split("://").next().unwrap().clone();
     let mut attempts = 0;
     let output;
@@ -43,6 +102,29 @@ pub fn get_file(url: &str, local_path: &Path, remote_scratch: &str, client: &Alg
     Ok(output)
 }
 
+pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
+    if local_file.exists() {
+        let mut attempts = 0;
+        loop {
+            let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
+            let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
+            if response.is_ok() {
+                let _ = response.unwrap();
+                break;
+            } else if attempts > MAX_ATTEMPTS_DATA {
+                let err = response.err().unwrap();
+                return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+            } else {
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
+            }
+        }
+        Ok(url_dir.to_string())
+    } else {
+        Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())
+    }
+}
+
 fn get_file_from_html(url: &str, local_path: &Path, remote_file: &str, client: &Algorithmia) -> Result<PathBuf, VideoError> {
     let local_dir = local_path.parent().unwrap();
     create_directory(local_dir);
@@ -59,51 +141,18 @@ pub fn get_file_from_algorithmia(url: &str, local_path: &Path, client: &Algorith
     let local_dir = local_path.parent().unwrap();
     create_directory(local_dir);
     let file = client.file(&url);
-    let mut attempts = 0;
-    loop {
-        match file.exists() {
-            Ok(true) => {
-                let mut remote_file: FileData = file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
-                let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
-                thread::sleep(Duration::from_secs(2));
-                copy(&mut remote_file, &mut local_file).map_err(|err| format!("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err))?;
-                return Ok(PathBuf::from(local_path))
-            }
-            Ok(false) => {
-                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                attempts += 1;
-            }
-            Err(error) => {
-                return Err(format!("recieved an error trying to download {}\n{}", url, error).into())
-            }
+    match file.exists() {
+        Ok(true) => {
+            let mut remote_file: FileData = file.get().map_err(|err| format!("couldn't download file from url: {} \n{}", &url, err))?;
+            let mut local_file = File::create(local_path).map_err(|err| format!("couldn't create local file: {} \n{}", local_path.to_str().unwrap(), err))?;
+            thread::sleep(Duration::from_secs(2));
+            copy(&mut remote_file, &mut local_file).map_err(|err| format!("couldn't copy remote file to local: {} \n{}", local_path.to_str().unwrap(), err))?;
+            Ok(PathBuf::from(local_path))
         }
-        if attempts > MAX_ATTEMPTS_DATA {
-            return Err(format!("failed {} times to download file {}", attempts, url).into())
+        Ok(false) => {Err(format!("file not ready").into())}
+        Err(error) => {
+            Err(format!("recieved an error trying to download {}\n{}", url, error).into())
         }
-    }
-}
-
-pub fn upload_file(url_dir: &str, local_file: &Path, client: &Algorithmia) -> Result<String, VideoError> {
-    if local_file.exists() {
-        let mut attempts = 0;
-        let output;
-        loop {
-            let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
-            let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
-            if response.is_ok() {
-                output = response.unwrap();
-                break;
-            } else if attempts > MAX_ATTEMPTS_DATA {
-                let err = response.err().unwrap();
-                return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
-            } else {
-                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                attempts += 1;
-            }
-        }
-        Ok(url_dir.to_string())
-    } else {
-        Err(format!("file path: {} doesn't exist!, upload error.", local_file.display()).into())
     }
 }
 
@@ -128,15 +177,18 @@ pub fn batch_file_path(batch: &Vec<usize>, regex: &str, directory: &str) -> Resu
 }
 
 //retry 3 times, if it fails 3 times we exit hard.
-pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>, client: &Algorithmia) -> Result<(), VideoError>
+pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
+                         client: &Algorithmia,
+                         error_poll: Terminator) -> Result<(), VideoError>
 {
     for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
-        try!(upload_file(&remote_file, &local_file, client));
+        upload_file_parallel(&remote_file, &local_file, client, error_poll.clone())?;
     }
     Ok(())
 }
 
-pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_locations: &Vec<String>, client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
+pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_locations: &Vec<String>,
+                      client: &Algorithmia) -> Result<Vec<PathBuf>, VideoError>
 {
     let mut output: Vec<PathBuf> = Vec::new();
     for (local_file, remote_file) in local_file_save_locations.iter().zip(remote_file_get_locations.iter()) {
@@ -146,23 +198,27 @@ pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_
 }
 
 //fail fast if the exception contains '429'
-pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value) -> Result<AlgoResponse, VideoError> {
+pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value,
+                     error_poll: Terminator) -> Result<AlgoResponse, VideoError> {
     let mut attempts = 0;
     let mut final_result;
     loop {
-        match client.algo(algorithm).timeout(500).pipe(input.clone()) {
-            Ok(result) => {
-                final_result = result;
-                break;
-            },
-            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
-                println!("failed.");
-                thread::sleep(Duration::from_millis((1000*attempts) as u64));
-                attempts += 1;
-            },
-            Err(ref err) => {
-                println!("failed hard.");
-                return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
+        if error_poll.check_signal().is_some(){return Err(format!("already receieved an error.").into())}
+        else {
+            match client.algo(algorithm).timeout(500).pipe(input.clone()) {
+                Ok(result) => {
+                    final_result = result;
+                    break;
+                },
+                Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
+                    println!("failed.");
+                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                    attempts += 1;
+                },
+                Err(ref err) => {
+                    println!("failed hard.");
+                    return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
+                }
             }
         }
     }

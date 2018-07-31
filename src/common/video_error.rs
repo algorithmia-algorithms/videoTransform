@@ -53,10 +53,4 @@ quick_error!{
         }
     }
 }
-//
-impl Clone for VideoError{
-    fn clone(&self) -> VideoError {
-        self.clone()
-    }
-}
 

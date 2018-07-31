@@ -2,7 +2,7 @@
 use std::time::{Duration, SystemTime};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use common::threading::Lockstep;
+use common::threading::{Terminator, Lockstep};
 use common::video_error::VideoError;
 use std::thread;
 use std::thread::JoinHandle;
@@ -14,7 +14,7 @@ static ADJUSTMENT_TIME: f64 = 60f64;
 pub struct WatchdogComms {
     watchdog_rx: Lockstep<Receiver<usize>>,
     watchdog_tx: Lockstep<Sender<usize>>,
-    terminate_tx: Lockstep<Option<VideoError>>,
+    terminate_tx: Terminator,
     total_jobs: usize,
 }
 
@@ -24,7 +24,7 @@ pub struct Watchdog {
 }
 
 impl Watchdog {
-    pub fn create(term_obj: Lockstep<Option<VideoError>>, total_jobs: usize) -> Watchdog {
+    pub fn create(term_obj: Terminator, total_jobs: usize) -> Watchdog {
         let wdc = WatchdogComms::create(term_obj, total_jobs);
         let wdcc = wdc.clone();
         println!("starting up watchdog thread.");
@@ -39,13 +39,14 @@ impl Watchdog {
     }
 
     pub fn terminate(self) -> () {
+        println!("terminating watchdog thread");
         let _ = self.watchdog_comms.watchdog_tx.lock().unwrap().send(0);
         let _ = self.callback.join();
     }
 }
 
 impl WatchdogComms {
-    fn create(term_obj: Lockstep<Option<VideoError>>, total_jobs: usize) -> WatchdogComms {
+    fn create(term_obj: Terminator, total_jobs: usize) -> WatchdogComms {
         let (s, r) = channel();
         let locked_s = Arc::new(Mutex::new(s));
         let locked_r = Arc::new(Mutex::new(r));
@@ -56,13 +57,12 @@ impl WatchdogComms {
         let _ = self.watchdog_tx.lock().unwrap().send(1);
     }
 
-
     fn watchdog_thread_inner(&self) -> () {
 
         fn failure_mgmt(wd: &WatchdogComms, message: String) -> () {
             println!("failing with message: {}", message);
-            let mut terminate = wd.terminate_tx.lock().unwrap();
-            *terminate = Some(message.into());
+            let err = VideoError::MsgError(message);
+            wd.terminate_tx.set_signal(err)
         }
 
         let mut finished_jobs: f64 = 0f64;

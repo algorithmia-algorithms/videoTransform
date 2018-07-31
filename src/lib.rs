@@ -53,7 +53,7 @@ impl Algo {
         let batch_size = 5;
         let starting_threads = 5;
         let max_threads = 35;
-        let format = ExecutionStyle::Algo;
+        let format = ExecutionStyle::ProdLocal;
         let objective = Objective::Transform;
         let parameters: PreDefines = PreDefines::create(format, batch_size, starting_threads, max_threads,
                                           &entry.output_file, &entry.input_file,

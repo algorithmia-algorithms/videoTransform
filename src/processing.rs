@@ -62,7 +62,7 @@ pub fn gather(ffmpeg: &FFMpeg,
     let catted_video_with_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "with_streams", filename, extension));
     ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps(), crf)?;
     let video_with_streams = ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file)?;
-    Ok(Gathered::new(video_with_streams, data.fps()))
+    Ok(Gathered::new(video_with_streams))
 }
 
 // alter branch, used by VideoTransform
@@ -79,21 +79,27 @@ pub fn transform(client: &Algorithmia,
     let config = rayon::Configuration::new().set_num_threads(max_threads as usize);
     println!("starting threads: {}", starting_threads);
     rayon::initialize(config)?;
+    let alter = Alter::new(client.clone(),
+                           data.regex().clone(),
+                           output_regex.clone(),
+                           local_out_dir.clone(),
+                           data.frames_dir().clone(),
+                           remote_dir.clone());
     //batch size is only used if the algorithm accepts batching and/or the user defined advanced input has a $BATCH_FILE_INPUT & $BATCH_FILE_OUTPUT designated.
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
             let search: AdvancedInput = AdvancedInput::create_transform(advanced_input)?;
-            transform::executor::advanced(client, data, remote_dir, local_out_dir, output_regex, algorithm, batch_size, starting_threads, max_threads, search)
+            transform::executor::advanced(alter, data.num_frames(), data.fps(), algorithm, batch_size, starting_threads, max_threads, search)
         }
         //no custom json input, so we use defaults.
         None => {
             if algorithm.to_ascii_lowercase().as_str().contains("deepfilter") {
-                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, starting_threads, max_threads, &transform::functions::deep_filter)
+                transform::executor::default(alter, data.num_frames(), data.fps(), batch_size, starting_threads, max_threads, &transform::functions::deep_filter)
             } else if algorithm.to_ascii_lowercase().as_str().contains("salnet") {
-                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, starting_threads, max_threads, &transform::functions::salnet)
+                transform::executor::default(alter, data.num_frames(), data.fps(), batch_size, starting_threads, max_threads, &transform::functions::salnet)
             } else if algorithm.to_ascii_lowercase().as_str().contains("colorfulimagecolorization") {
-                transform::executor::default(client, data, remote_dir, local_out_dir, output_regex, batch_size, starting_threads, max_threads, &transform::functions::colorful_colorization)
+                transform::executor::default(alter, data.num_frames(), data.fps(), batch_size, starting_threads, max_threads, &transform::functions::colorful_colorization)
             } else {
                 println!("failed to pattern match anything.");
                 Err(String::from("No default algorithm definition, advanced_input required.").into())
@@ -115,18 +121,24 @@ pub fn extract(client: &Algorithmia,
     let config = rayon::Configuration::new().set_num_threads(max_threads as usize);
     println!("starting threads: {}", starting_threads);
     rayon::initialize(config)?;
+
+    let extract = Extract::new(client.clone(),
+                               data.regex().clone(),
+                               data.frames_dir().clone(),
+                               remote_dir.clone());
+
     match algo_input {
         Some(advanced_input) => {
             println!("advanced input found");
             let search: AdvancedInput = AdvancedInput::create_extract(advanced_input)?;
-            extract::executor::advanced(client, data, remote_dir, algorithm, batch_size, duration, starting_threads, max_threads, search)
+            extract::executor::advanced(extract, data.num_frames(), algorithm,  batch_size, duration, starting_threads, max_threads, search)
         }
         //no custom json input, so we use defaults.
         None => {
             if algorithm.to_ascii_lowercase().as_str().contains("nuditydetection") {
-                extract::executor::default(client, data, remote_dir, batch_size, duration, starting_threads, max_threads, &extract::functions::nudity_detection)
+                extract::executor::default(extract, data.num_frames(), batch_size, duration, starting_threads, max_threads, &extract::functions::nudity_detection)
             } else if algorithm.to_ascii_lowercase().as_str().contains("illustrationtagger") {
-                extract::executor::default(client, data, remote_dir, batch_size, duration, starting_threads, max_threads, &extract::functions::illustration_tagger)
+                extract::executor::default(extract, data.num_frames(), batch_size, duration, starting_threads, max_threads, &extract::functions::illustration_tagger)
             } else {
                 println!("failed to pattern match anything.");
                 Err(String::from("not implemented.").into())

@@ -45,7 +45,7 @@ pub struct Altered {
 
 impl Altered {
     pub fn fps(&self) -> f64 {self.fps}
-    pub fn frames(&self) -> &Vec<PathBuf> {self.frames.as_ref()}
+//    pub fn frames(&self) -> &Vec<PathBuf> {self.frames.as_ref()}
     pub fn frames_dir(&self) -> &Path {self.frames_dir.as_ref()}
     pub fn regex(&self) -> &str {&self.frame_regex}
     pub fn new(frames_dir: PathBuf, frames: Vec<PathBuf>, fps: f64, frame_regex: String) -> Altered{
