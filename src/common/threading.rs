@@ -112,7 +112,6 @@ pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>,
             Ok(result)
         },
         Err(err) => {
-            threadable.emergency_release();
             if err.to_string().contains("algorithm hit max number of active calls per session") {
                 threadable.slow_down();
                 try_algorithm_default(function, batch, threadable)

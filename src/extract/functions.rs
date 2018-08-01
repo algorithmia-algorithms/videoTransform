@@ -13,7 +13,6 @@ use either::{Left, Right};
 pub fn nudity_detection(input: &Threadable<Extract>, batch: Vec<usize>) -> Result<Vec<Value>, VideoError> {
     let algorithm = "algo://sfw/NudityDetectioni2v/0.2.4";
     let data = input.arc_data().clone();
-    let semaphore = input.arc_semaphore();
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, data.input_regex(), data.remote_working())?;
@@ -25,11 +24,7 @@ pub fn nudity_detection(input: &Threadable<Extract>, batch: Vec<usize>) -> Resul
         .map(|frame| {Value::String(frame.clone())}).collect::<Vec<Value>>(),
     });
 
-    //println!("acquiring semaphore");
-    semaphore.acquire();
-    let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
-    semaphore.release();
-    //println!("releasing semaphore");
+    let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal(), input.arc_semaphore())?;
 
     let output_json: Value = response.into_json()
         .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
@@ -40,7 +35,6 @@ pub fn nudity_detection(input: &Threadable<Extract>, batch: Vec<usize>) -> Resul
 pub fn illustration_tagger(input: &Threadable<Extract>, batch: Vec<usize>) -> Result<Vec<Value>, VideoError> {
     let algorithm = "algo://deeplearning/IllustrationTagger/0.2.3";
     let data = input.arc_data();
-    let semaphore = input.arc_semaphore();
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, data.input_regex(), data.remote_working())?;
@@ -53,11 +47,7 @@ pub fn illustration_tagger(input: &Threadable<Extract>, batch: Vec<usize>) -> Re
             .map(|frame| {Value::String(frame.clone())}).collect::<Vec<Value>>(),
         });
 
-        //println!("acquiring semaphore");
-        semaphore.acquire();
-        let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
-        semaphore.release();
-        //println!("releasing semaphore");
+        let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal(), input.arc_semaphore())?;
 
         let output_json: Value = response.into_json()
             .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
@@ -69,30 +59,24 @@ pub fn illustration_tagger(input: &Threadable<Extract>, batch: Vec<usize>) -> Re
 pub fn advanced_single(input: &Threadable<Extract>, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput) -> Result< Vec<Value>, VideoError> {
     let mut output: Vec<Value> = Vec::new();
     let data = input.arc_data().clone();
-    let semaphore = input.arc_semaphore();
     let local_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
     let remote_frames: Vec<String> = batch_file_path(&batch, data.input_regex(), data.remote_working())?;
     batch_upload_file(&local_frames, &remote_frames, data.client(), input.arc_term_signal())?;
-    semaphore.acquire();
     for _ in 0..remote_frames.len() {
         let json: Value = algo_input.replace_variables_extract(Right(remote_frames.iter().next().unwrap()))?;
 
-        //println!("acquiring semaphore");
-        let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
-        //println!("releasing semaphore");
+        let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal(), input.arc_semaphore())?;
 
         let output_json: Value = response.into_json()
             .ok_or(format!("algorithm failed, ending early:\n algorithm response did not parse as valid json."))?;
         output.push(output_json);
     }
-    semaphore.release();
     Ok(output)
 }
 
 pub fn advanced_batch(input: &Threadable<Extract>, batch: Vec<usize>, algorithm: String, algo_input: &AdvancedInput) -> Result< Vec<Value>, VideoError> {
     let data = input.arc_data().clone();
-    let semaphore = input.arc_semaphore();
 
     let local_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| {PathBuf::from(str.to_owned())}).collect::<Vec<PathBuf>>();
@@ -102,9 +86,7 @@ pub fn advanced_batch(input: &Threadable<Extract>, batch: Vec<usize>, algorithm:
     let json: Value = algo_input.replace_variables_extract(Left(&remote_frames))?;
 
     //println!("acquiring semaphore");
-    semaphore.acquire();
-    let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal())?;
-    semaphore.release();
+    let response: AlgoResponse = try_algorithm(data.client(), &algorithm, &json, input.arc_term_signal(), input.arc_semaphore())?;
     //println!("releasing semaphore");
 
     let output_json: Value = response.into_json()

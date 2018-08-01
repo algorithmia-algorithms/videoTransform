@@ -6,6 +6,8 @@ use std::thread;
 use common::file_mgmt::{from_regex, create_directory};
 use common::threading::*;
 use algorithmia::data::{FileData, HasDataPath};
+use std_semaphore::Semaphore;
+use std::sync::Arc;
 use std::time::Duration;
 use std::io::copy;
 use std::path::*;
@@ -16,6 +18,40 @@ static SMART_VIDEO_DOWNLOADER: &'static str = "algo://media/SmartVideoDownloader
 static MAX_ATTEMPTS_DATA: usize = 4;
 static MAX_ATTEMPTS_ALGO: usize = 4;
 
+
+//fail fast if the exception contains '429'
+pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value,
+                     error_poll: Terminator, semaphore: Arc<Semaphore>) -> Result<AlgoResponse, VideoError> {
+    let mut attempts = 0;
+    let final_result;
+
+    loop {
+        if error_poll.check_signal().is_some() { return Err(format!("already received an error.").into()) }
+        semaphore.acquire();
+        match client.algo(algorithm).pipe(input.clone()) {
+            Ok(result) => {
+                semaphore.release();
+                final_result = result;
+                break;
+            },
+            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
+                semaphore.release();
+                println!("failed.");
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
+            },
+            Err(ref err) => {
+                semaphore.release();
+                println!("failed hard.");
+                return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
+            }
+        }
+    }
+    Ok(final_result)
+}
+
+
+
 //gets any remote file, http/https or data connector
 pub fn get_file_parallel(url: &str, local_path: &Path, client: &Algorithmia,
                          error_poll: Terminator) -> Result<PathBuf, VideoError> {
@@ -23,7 +59,6 @@ pub fn get_file_parallel(url: &str, local_path: &Path, client: &Algorithmia,
     let output;
     loop {
         if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
-        println!("no error received, getting file.");
         let result = get_file_from_algorithmia(url, local_path, client);
         if result.is_ok() {
             output = result.unwrap();
@@ -47,7 +82,6 @@ pub fn upload_file_parallel(url_dir: &str, local_file: &Path, client: &Algorithm
         let mut attempts = 0;
         loop {
             if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
-            println!("no error received, uploading file.");
             let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
             let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
             if response.is_ok() {
@@ -191,31 +225,4 @@ pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_
             }
             Ok(output)
         }
-}
-
-//fail fast if the exception contains '429'
-pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value,
-                     error_poll: Terminator) -> Result<AlgoResponse, VideoError> {
-    let mut attempts = 0;
-    let mut final_result;
-    loop {
-        if error_poll.check_signal().is_some() { return Err(format!("already received an error.").into()) }
-        println!("no error received, executing algorithm.");
-        match client.algo(algorithm).pipe(input.clone()) {
-            Ok(result) => {
-                final_result = result;
-                break;
-            },
-            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
-                println!("failed.");
-                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                attempts += 1;
-            },
-            Err(ref err) => {
-                println!("failed hard.");
-                return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
-            }
-        }
-    }
-    Ok(final_result)
 }
