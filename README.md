@@ -19,17 +19,6 @@ This algorithm uses an image processing algorithm to alter each frame of a video
 
 
 
-# Table of Contents
-
-*   [Input](#inputs)
-*   [Output](#outputs)
-*   [Default Options](#defaults)
-*   [Examples](#examples)
-*   [credits](#credits)
-*   [Algorithm Console](#console)
-
-<a id="inputs"></a>
-
 # Input
 
 ```
@@ -48,7 +37,7 @@ video_compression: Int
 *   advanced_input - **_(optional)_** - if you have advanced requirements or want to use an algorithm with no default parameters, See [Advanced Input](#advancedInput).
 *   fps - **_(optional)_** - If you have a desired fps sampling rate, input it here. _defaults to the input video's fps._
 *   image_compression - **_(optional)_** - if you want to improve performance of processing, it's possible to compress each frame using the jpeg compression algorithm, the value provided is the associated compression ratio - from `0` (uncompressed) to `100` (most compressed) default jpeg compression is `20`.
-*   video_compression - (optional) - by default, the output video file is raw and uncompressed, if you desire to compress your output video using the libx264 codec, provide a compression ratio value for this element, from `0` (uncompressed) to `100 (most compressed)
+*   video_compression - **_(optional)_** - by default, the output video file is raw and uncompressed, if you desire to compress your output video using the libx264 codec, provide a compression ratio value for this element, from `0` (uncompressed) to `100 (most compressed)
 
 <a id="advancedInput"></a>
 
