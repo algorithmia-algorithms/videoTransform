@@ -9,6 +9,10 @@ This algorithm uses an image processing algorithm to alter each frame of a video
 
 
 # Changelog
+0.6.3 - August 1st, 2018:
+* Added a early termination watchdog thread that detects processing jobs that are forecasted to take longer than the maximum timeout of `50 minutes`.
+* various bug fixes that should improve stability and early termination in the event of a detected failure.
+
 0.5.0 - May 23, 2017:
 * Added [Smart Video Downloader][smd] support to resolve a compressed gzip request problem
 * with Smart Video Downloader added, `input_file` may now point to any web hosted URL, including youtube, vimeo, etc.
@@ -43,8 +47,8 @@ video_compression: Int
 *   algorithm - **_(required)_** - The image processing algorithmia algorithm uri, if no default mode is found for that algorithm, advanced_input _must_ be defined.
 *   advanced_input - **_(optional)_** - if you have advanced requirements or want to use an algorithm with no default parameters, See [Advanced Input](#advancedInput).
 *   fps - **_(optional)_** - If you have a desired fps sampling rate, input it here. _defaults to the input video's fps._
-*   image_compression - **_(optional)_** - if you want to improve performance of processing, it's possible to compress each frame using the jpeg compression algorithm, the value provided is the associated compression ratio.
-*   video_compression - **_(optional)_** - by default, the output video file is raw and uncompressed, if you desire to compress your output video using the libx264 codec, provide a compression ratio value for this element.
+*   image_compression - **_(optional)_** - if you want to improve performance of processing, it's possible to compress each frame using the jpeg compression algorithm, the value provided is the associated compression ratio - from `0` (uncompressed) to `100` (most compressed) default jpeg compression is `20`.
+*   video_compression - (optional) - by default, the output video file is raw and uncompressed, if you desire to compress your output video using the libx264 codec, provide a compression ratio value for this element, from `0` (uncompressed) to `100 (most compressed)
 
 <a id="advancedInput"></a>
 
