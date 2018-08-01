@@ -103,7 +103,6 @@ pub fn advanced_batch(input: &Threadable<Alter>, batch: Vec<usize>, algorithm: S
 
     let data = input.arc_data().clone();
     let semaphore = input.arc_semaphore();
-
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| { PathBuf::from(str.to_owned()) }).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, data.input_regex(), data.remote_working())?;
@@ -130,13 +129,14 @@ pub fn advanced_single(input: &Threadable<Alter>, batch: Vec<usize>, algorithm: 
 
     let data = input.arc_data();
     let semaphore = input.arc_semaphore();
-
     let local_pre_frames: Vec<PathBuf> = batch_file_path(&batch, data.input_regex(), data.local_input().to_str().unwrap())?
         .iter().map(|str| { PathBuf::from(str.to_owned()) }).collect::<Vec<PathBuf>>();
     let remote_pre_frames: Vec<String> = batch_file_path(&batch, data.input_regex(), data.remote_working())?;
     let remote_post_frames: Vec<String> = batch_file_path(&batch, data.output_regex(), data.remote_working())?;
     let local_post_frames: Vec<PathBuf> = batch_file_path(&batch, data.output_regex(), data.local_output().to_str().unwrap())?
         .iter().map(|str| { PathBuf::from(str.clone()) }).collect::<Vec<PathBuf>>();
+
+
     batch_upload_file(&local_pre_frames, &remote_pre_frames, data.client(), input.arc_term_signal())?;
     semaphore.acquire();
     for _ in 0..remote_pre_frames.len() {

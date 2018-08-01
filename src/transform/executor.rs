@@ -81,7 +81,7 @@ pub fn advanced(data: Alter,
             wd_t.send_success_signal();
         }
         res
-    }).weight(1f64).collect_into(&mut result);
+    }).collect_into(&mut result);
     wd.terminate();
     println!("exited parallel map.");
     let signal = global_threadable.extract_term_signal();

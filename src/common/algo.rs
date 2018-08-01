@@ -13,8 +13,8 @@ use std::fs::File;
 use serde_json::Value;
 
 static SMART_VIDEO_DOWNLOADER: &'static str = "algo://media/SmartVideoDownloader/0.2.0";
-static MAX_ATTEMPTS_DATA: usize = 7;
-static MAX_ATTEMPTS_ALGO: usize = 5;
+static MAX_ATTEMPTS_DATA: usize = 4;
+static MAX_ATTEMPTS_ALGO: usize = 4;
 
 //gets any remote file, http/https or data connector
 pub fn get_file_parallel(url: &str, local_path: &Path, client: &Algorithmia,
@@ -22,21 +22,20 @@ pub fn get_file_parallel(url: &str, local_path: &Path, client: &Algorithmia,
     let mut attempts = 0;
     let output;
     loop {
-        if error_poll.check_signal().is_some() {return Err(format!("already receieved an error.").into())}
-            else {
-                let result = get_file_from_algorithmia(url, local_path, client);
-                if result.is_ok() {
-                    output = result.unwrap();
-                    break;
-                } else if attempts > MAX_ATTEMPTS_DATA {
-                    let err = result.err().unwrap();
-                    return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
-                } else {
-                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                    println!("failed {} times to download file\n{}", attempts, url.to_string());
-                    attempts += 1;
-                }
-            }
+        if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
+        println!("no error received, getting file.");
+        let result = get_file_from_algorithmia(url, local_path, client);
+        if result.is_ok() {
+            output = result.unwrap();
+            break;
+        } else if attempts > MAX_ATTEMPTS_DATA {
+            let err = result.err().unwrap();
+            return Err(format!("failed {} times to download file {} : \n{}", attempts, url, err).into())
+        } else {
+            thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+            println!("failed {} times to download file\n{}", attempts, url.to_string());
+            attempts += 1;
+        }
     }
     Ok(output)
 }
@@ -47,19 +46,19 @@ pub fn upload_file_parallel(url_dir: &str, local_file: &Path, client: &Algorithm
     if local_file.exists() {
         let mut attempts = 0;
         loop {
-            if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) } else {
-                let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
-                let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
-                if response.is_ok() {
-                    let _ = response.unwrap();
-                    break;
-                } else if attempts > MAX_ATTEMPTS_DATA {
-                    let err = response.err().unwrap();
-                    return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
-                } else {
-                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                    attempts += 1;
-                }
+            if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
+            println!("no error received, uploading file.");
+            let file: File = File::open(local_file).map_err(|err| { format!("failed to open file: {}\n{}", local_file.display(), err) })?;
+            let response: Result<(), VideoError> = client.file(url_dir).put(file).map_err(|err| { format!("upload failure for:{}\n{}", url_dir, err.description()).into() });
+            if response.is_ok() {
+                let _ = response.unwrap();
+                break;
+            } else if attempts > MAX_ATTEMPTS_DATA {
+                let err = response.err().unwrap();
+                return Err(format!("failed {} times to upload file {} : \n{}", attempts, local_file.display(), err).into())
+            } else {
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
             }
         }
         Ok(url_dir.to_string())
@@ -174,6 +173,7 @@ pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
                          client: &Algorithmia,
                          error_poll: Terminator) -> Result<(), VideoError>
 {
+    if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
     for (local_file, remote_file) in local_files.iter().zip(remote_files.iter()) {
         upload_file_parallel(&remote_file, &local_file, client, error_poll.clone())?;
     }
@@ -183,11 +183,14 @@ pub fn batch_upload_file(local_files: &Vec<PathBuf>, remote_files: &Vec<String>,
 pub fn batch_get_file(local_file_save_locations: &Vec<PathBuf>, remote_file_get_locations: &Vec<String>,
                       client: &Algorithmia, error_poll: Terminator) -> Result<Vec<PathBuf>, VideoError>
 {
-    let mut output: Vec<PathBuf> = Vec::new();
-    for (local_file, remote_file) in local_file_save_locations.iter().zip(remote_file_get_locations.iter()) {
-        output.push(get_file_parallel(&remote_file, &local_file, client, error_poll.clone())?);
-    }
-    Ok(output)
+    if error_poll.check_signal().is_some() { return Err(format!("already receieved an error.").into()) }
+        else {
+            let mut output: Vec<PathBuf> = Vec::new();
+            for (local_file, remote_file) in local_file_save_locations.iter().zip(remote_file_get_locations.iter()) {
+                output.push(get_file_parallel(&remote_file, &local_file, client, error_poll.clone())?);
+            }
+            Ok(output)
+        }
 }
 
 //fail fast if the exception contains '429'
@@ -196,22 +199,21 @@ pub fn try_algorithm(client: &Algorithmia, algorithm: &str, input: &Value,
     let mut attempts = 0;
     let mut final_result;
     loop {
-        if error_poll.check_signal().is_some(){return Err(format!("already receieved an error.").into())}
-        else {
-            match client.algo(algorithm).timeout(500).pipe(input.clone()) {
-                Ok(result) => {
-                    final_result = result;
-                    break;
-                },
-                Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
-                    println!("failed.");
-                    thread::sleep(Duration::from_millis((1000 * attempts) as u64));
-                    attempts += 1;
-                },
-                Err(ref err) => {
-                    println!("failed hard.");
-                    return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
-                }
+        if error_poll.check_signal().is_some() { return Err(format!("already received an error.").into()) }
+        println!("no error received, executing algorithm.");
+        match client.algo(algorithm).pipe(input.clone()) {
+            Ok(result) => {
+                final_result = result;
+                break;
+            },
+            Err(ref err) if attempts < MAX_ATTEMPTS_ALGO && !err.to_string().contains("algorithm hit max number of active calls per session") => {
+                println!("failed.");
+                thread::sleep(Duration::from_millis((1000 * attempts) as u64));
+                attempts += 1;
+            },
+            Err(ref err) => {
+                println!("failed hard.");
+                return Err(format!("algorithm {} failed: \n{}", &algorithm, err).into())
             }
         }
     }

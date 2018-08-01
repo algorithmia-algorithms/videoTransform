@@ -121,9 +121,9 @@ mod test {
     "output_file" : "data://quality/Videos/kingsman.mkv",
     "algorithm":"algo://deeplearning/ColorfulImageColorization",
     "advanced_input": {"image": "$SINGLE_INPUT", "location": "$SINGLE_OUTPUT"},
-    "fps":0.75,
+    "fps":5,
 //    "video_compression" : 30,
-    "image_compression" : 20
+    "image_compression" : 30
     });
         println!("data: {:?}", &raw);
         let json = AlgoInput::Json(Cow::Owned(raw));
@@ -142,10 +142,10 @@ mod test {
     "fill_color": "blur"
     });
         let raw = json!({
-    "input_file" : "data://zeryx/Video/shorter_lounge.mp4",
-    "output_file" : "data://quality/Videos/silicon_valley_censored.mp4",
+    "input_file" : "data://media/videos/kigsman.mkv",
+    "output_file" : "data://quality/Videos/kigsman_censored.mp4",
     "algorithm" : "algo://cv/CensorFace",
-    "fps" : 60,
+    "fps" : 10,
 //    "video_compression" : 25,
 //    "image_compression" : 35,
     "advanced_input" : advanced_input

@@ -69,8 +69,9 @@ impl<J> Threadable<J> where J: Clone {
     }
 
     pub fn arc_semaphore(&self) -> Arc<Semaphore> {self.semaphore.clone()}
-//    fn arc_time(&self) -> Lockstep<SystemTime> {self.time.clone()}
-//    fn arc_slow_signal(&self) -> Arc<AtomicBool> {self.slowdown_signal.clone()}
+
+    pub fn emergency_release(&self) -> () {self.semaphore.release(); println!("released semaphore due to emergency.")}
+
     pub fn arc_data(&self) -> Arc<J> {self.readonly_data.clone()}
     pub fn arc_term_signal(&self) -> Terminator {self.termination_signal.clone()}
 
@@ -111,7 +112,7 @@ pub fn try_algorithm_default<T, J>(function: &Default<T, J>, batch: &Vec<usize>,
             Ok(result)
         },
         Err(err) => {
-//            println!(err);
+            threadable.emergency_release();
             if err.to_string().contains("algorithm hit max number of active calls per session") {
                 threadable.slow_down();
                 try_algorithm_default(function, batch, threadable)
@@ -144,7 +145,7 @@ pub fn try_algorithm_advanced<T, J>(function: &Advanced<T, J>, batch: &Vec<usize
             Ok(result)
         },
         Err(err) => {
-//            println!(&err);
+            threadable.emergency_release();
             if err.to_string().contains("algorithm hit max number of active calls per session") {
                 threadable.slow_down();
                 try_algorithm_advanced(function,  batch, algo, json,threadable)
