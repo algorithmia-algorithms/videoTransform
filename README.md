@@ -36,7 +36,7 @@ video_compression: Int
 *   algorithm - **_(required)_** - The image processing algorithmia algorithm uri, if no default mode is found for that algorithm, advanced_input _must_ be defined.
 *   advanced_input - **_(optional)_** - if you have advanced requirements or want to use an algorithm with no default parameters, See [Advanced Input](#advancedInput).
 *   fps - **_(optional)_** - If you have a desired fps sampling rate, input it here. _defaults to the input video's fps._
-*   image_compression - **_(optional)_** - if you want to improve performance of processing, it's possible to compress each frame using the jpeg compression algorithm, the value provided is the associated compression ratio - from `0` (uncompressed) to `100` (most compressed) default jpeg compression is `20`.
+*   image_compression - **_(optional)_** - if you want to improve performance of processing, it's possible to compress each frame using the jpeg compression algorithm, the value provided is the associated compression ratio - from `0` (uncompressed) to `100` (most compressed). _If undefined, we use the PNG algorithm and image format instead, **beware as some algorithms don't support jpg, or vice versa.**_
 *   video_compression - **_(optional)_** - by default, the output video file is raw and uncompressed, if you desire to compress your output video using the libx264 codec, provide a compression ratio value for this element, from `0` (uncompressed) to `100 (most compressed)
 
 <a id="advancedInput"></a>
