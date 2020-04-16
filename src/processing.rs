@@ -61,8 +61,8 @@ pub fn gather(ffmpeg: &FFMpeg,
     let catted_video_no_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "streamless", filename, extension));
     let catted_video_with_audio = PathBuf::from(format!("{}/{}-{}.{}", video_working_directory.display(), "with_streams", filename, extension));
     ffmpeg.cat_video(&catted_video_no_audio, data.frames_dir(), data.regex(), data.fps(), crf)?;
-    let video_with_streams = ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file)?;
-    Ok(Gathered::new(video_with_streams))
+//    let video_with_streams = ffmpeg.attach_streams(&catted_video_no_audio, &catted_video_with_audio, &original_file)?;
+    Ok(Gathered::new(catted_video_no_audio))
 }
 
 // alter branch, used by VideoTransform

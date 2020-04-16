@@ -61,7 +61,7 @@ impl Algo {
         let batch_size = 5;
         let starting_threads = 5;
         let max_threads = 35;
-        let format = ExecutionStyle::Algo;
+        let format = ExecutionStyle::ProdLocal;
         let objective = Objective::Transform;
         let parameters: PreDefines = PreDefines::create(format, batch_size, starting_threads, max_threads,
                                                         &entry.output_file, &entry.input_file,
@@ -117,11 +117,11 @@ mod test {
     #[test]
     fn basic_test() {
         let raw = json!({
-    "input_file" : "data://media/videos/kigsman.mkv",
-    "output_file" : "data://quality/Videos/kingsman.mkv",
-    "algorithm":"algo://deeplearning/ColorfulImageColorization",
-    "advanced_input": {"image": "$SINGLE_INPUT", "location": "$SINGLE_OUTPUT"},
-    "fps":5,
+    "input_file" : " data://zeryx/streaming_collection/stream_file_2.mp4",
+    "output_file" : "data://quality/Videos/stream_file.mp4",
+    "algorithm":"algo://algorithmiahq/deepfashion",
+    "advanced_input": {  "image": "$SINGLE_INPUT","output": "$SINGLE_OUTPUT","model":"small","tags_only": false},
+    "fps":10,
 //    "video_compression" : 30,
     "image_compression" : 30
     });
